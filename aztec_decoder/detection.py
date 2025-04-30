@@ -1,4 +1,11 @@
 import numpy as np
+from enum import Enum
+
+
+class AztecType(Enum):
+    COMPACT = 0
+    FULL = 1
+
 
 def detect_bullseye_bounds(matrix: np.ndarray) -> tuple:
     h, w = matrix.shape
@@ -25,7 +32,12 @@ def detect_bullseye_bounds(matrix: np.ndarray) -> tuple:
 
     top_left = (cy - layer, cx - layer)
     bottom_right = (cy + layer, cx + layer)
-    return top_left + bottom_right
+
+    if layer - 2 == 2:
+        aztec_type = AztecType.COMPACT
+    else:
+        aztec_type = AztecType.FULL
+    return (top_left + bottom_right), aztec_type
 
 def read_orientation_patterns(matrix: np.ndarray, bullseye_bounds: tuple) -> list:
     tl_y, tl_x, br_y, br_x = bullseye_bounds
