@@ -6,11 +6,11 @@ from typing import Optional, Dict
 
 
 class AztecTableType(Enum):
-    UPPER = "upper"
-    LOWER = "lower"
-    MIXED = "mixed"
-    PUNCT = "punct"
-    DIGIT = "digit"
+    UPPER = 0
+    LOWER = 1
+    MIXED = 2
+    PUNCT = 3
+    DIGIT = 4
 
 @dataclass
 class AztecTableEntry:
@@ -109,8 +109,6 @@ def read_codewords(matrix: np.ndarray, layers: int, data_words: int) -> np.ndarr
             reading_direction = ReadingDirection.BOTTOM
 
     bitmap = np.concatenate(bitmap).astype(int)
-    corrected_bitmap = correct_data_bits(bitmap, layers, data_words)
-    decode_codewords(corrected_bitmap, data_words, layers)
     return bitmap
 
 PRIM_POLY = {
@@ -161,47 +159,99 @@ def correct_data_bits(bit_stream: np.ndarray,
     return corrected_bits
 
 
+def bits_to_int(bits) -> int:
+    return int("".join(str(b) for b in bits), 2)
+
+def bits_to_bytes(bits) -> bytes:
+    if len(bits) % 8:
+        raise ValueError("Le flux de bits n'est pas multiple de 8.")
+    return bytes(
+        bits_to_int(bits[i : i + 8]) for i in range(0, len(bits), 8)
+    )
+
+LETTER2MODE = {
+    "U": AztecTableType.UPPER,
+    "L": AztecTableType.LOWER,
+    "M": AztecTableType.MIXED,
+    "P": AztecTableType.PUNCT,
+    "D": AztecTableType.DIGIT,
+}
+
+
 def decode_codewords(bitmap, data_words, layers):
-    if layers <= 2:
-       codewords_size = 6
-    elif layers <= 8:
-       codewords_size = 8
-    elif layers <= 22:
-       codewords_size = 10
-    elif layers <= 32:
-       codewords_size = 12
+    if   layers <=  2: codeword_size = 6
+    elif layers <=  8: codeword_size = 8
+    elif layers <= 22: codeword_size = 10
+    else:               codeword_size = 12
 
     i = 0
-    punct_count = 0
-    chars = ""
+    chars = []
     current_mode = AztecTableType.UPPER
     previous_mode = AztecTableType.UPPER
-    while (i//codewords_size) < data_words:
-        if current_mode == AztecTableType.PUNCT and punct_count == 0:
-            punct_count = 1
-        elif current_mode == AztecTableType.PUNCT and punct_count == 1:
-            punct_count = 0
-            current_mode = previous_mode
-        binary_as_a_slice = bitmap[i:i+5]
-        decimal = int("".join(str(x) for x in binary_as_a_slice), 2)
-        char = getattr(mapping[decimal], current_mode.name.lower())
-        if char == "P/S":
-            previous_mode = current_mode
-            current_mode = AztecTableType.PUNCT
-        elif char == "U/L" or char == "U/S":
-            previous_mode = current_mode
-            current_mode = AztecTableType.UPPER
-        elif char == "D/L":
-            previous_mode = current_mode
-            current_mode = AztecTableType.DIGIT
-        elif char == "M/L":
-            previous_mode = current_mode
-            current_mode = AztecTableType.MIXED
-        elif char == "L/L":
-            previous_mode = current_mode
-            current_mode = AztecTableType.LOWER
+    single_shift    = False
+    single_consumed = 0
+
+    while (i // codeword_size) < data_words:
+        if single_shift and single_consumed == 1:
+            current_mode    = previous_mode
+            single_shift    = False
+            single_consumed = 0
+
+        if current_mode == AztecTableType.DIGIT:
+            symbol_bits = bitmap[i : i + 4]
+            i += 4
         else:
-            chars += char
-        i += 5 if current_mode != AztecTableType.DIGIT else 4
-    print(chars)
-    return chars
+            symbol_bits = bitmap[i : i + 5]
+            i += 5
+
+        val  = bits_to_int(symbol_bits)
+        char = getattr(mapping[val], current_mode.name.lower())
+
+        if char.endswith("/S"):
+            previous_mode = current_mode
+            current_mode  = LETTER2MODE[char[0]]
+            single_shift  = True
+            single_consumed = 0
+            continue
+
+        if char.endswith("/L"):
+            current_mode = LETTER2MODE[char[0]]
+            previous_mode = current_mode
+            continue
+
+        if char == "B/S":
+            length = bits_to_int(bitmap[i : i + 5])
+            i += 5
+            if length == 0:
+                length = bits_to_int(bitmap[i : i + 11]) + 31
+                i += 11
+
+            byte_bits  = bitmap[i : i + 8 * length]
+            i += 8 * length
+            chars.append(bits_to_bytes(byte_bits).decode("latin-1"))
+            continue
+
+        if char.startswith("FLG"):
+            n = bits_to_int(bitmap[i : i + 3])
+            i += 3
+            if n == 0:
+                chars.append("\x1D")
+            elif 1 <= n <= 6:
+                digits = ""
+                for _ in range(n):
+                    d = bits_to_int(bitmap[i : i + 4]); i += 4
+                    digits += getattr(mapping[d], "digit")
+                eci_id = digits.zfill(6)
+                chars.append(f"[ECI:{eci_id}]")
+            else:
+                raise ValueError("FLG(7) reserved/illegal")
+            continue
+
+        if char in ("U/S", "L/S", "M/S", "P/S", "D/S"):
+            continue
+        chars.append(char)
+
+        if single_shift:
+            single_consumed += 1
+
+    return "".join(chars)
