@@ -23,24 +23,24 @@ class AztecTableEntry:
 mapping: Dict[int, AztecTableEntry] = {
     0: AztecTableEntry("P/S", "P/S", "P/S", "FLG(n)", "P/S"),
     1: AztecTableEntry(" ", " ", " ", "\n", " "),
-    2: AztecTableEntry("A", "a", "^A", "\n\r", "0"),
-    3: AztecTableEntry("B", "b", "^B", ". ", "1"),
-    4: AztecTableEntry("C", "c", "^C", ", ", "2"),
-    5: AztecTableEntry("D", "d", "^D", ": ", "3"),
-    6: AztecTableEntry("E", "e", "^E", "!", "4"),
-    7: AztecTableEntry("F", "f", "^F", '"', "5"),
-    8: AztecTableEntry("G", "g", "^G", "#", "6"),
-    9: AztecTableEntry("H", "h", "^H", "$", "7"),
-    10: AztecTableEntry("I", "i", "^I", "%", "8"),
-    11: AztecTableEntry("J", "j", "^J", "&", "9"),
-    12: AztecTableEntry("K", "k", "^K", "'", ","),
-    13: AztecTableEntry("L", "l", "^L", "(", "."),
-    14: AztecTableEntry("M", "m", "^M", ")", "U/L"),
-    15: AztecTableEntry("N", "n", "^[", "*", "U/S"),
-    16: AztecTableEntry("O", "o", "^\\", "+"),
-    17: AztecTableEntry("P", "p", "^]", ","),
-    18: AztecTableEntry("Q", "q", "^^", "-"),
-    19: AztecTableEntry("R", "r", "^_", "."),
+    2: AztecTableEntry("A", "a", chr(1), "\n\r", "0"),
+    3: AztecTableEntry("B", "b", chr(2), ". ", "1"),
+    4: AztecTableEntry("C", "c", chr(3), ", ", "2"),
+    5: AztecTableEntry("D", "d", chr(4), ": ", "3"),
+    6: AztecTableEntry("E", "e", chr(5), "!", "4"),
+    7: AztecTableEntry("F", "f", chr(6), '"', "5"),
+    8: AztecTableEntry("G", "g", chr(7), "#", "6"),
+    9: AztecTableEntry("H", "h", chr(8), "$", "7"),
+    10: AztecTableEntry("I", "i", chr(9), "%", "8"),
+    11: AztecTableEntry("J", "j", chr(10), "&", "9"),
+    12: AztecTableEntry("K", "k", chr(11), "'", ","),
+    13: AztecTableEntry("L", "l", chr(12), "(", "."),
+    14: AztecTableEntry("M", "m", chr(13), ")", "U/L"),
+    15: AztecTableEntry("N", "n", chr(27), "*", "U/S"),
+    16: AztecTableEntry("O", "o", chr(28), "+"),
+    17: AztecTableEntry("P", "p", chr(29), ","),
+    18: AztecTableEntry("Q", "q", chr(30), "-"),
+    19: AztecTableEntry("R", "r", chr(31), "."),
     20: AztecTableEntry("S", "s", "@", "/"),
     21: AztecTableEntry("T", "t", "\\", ":"),
     22: AztecTableEntry("U", "u", "^", ";"),
@@ -48,7 +48,7 @@ mapping: Dict[int, AztecTableEntry] = {
     24: AztecTableEntry("W", "w", "`", "="),
     25: AztecTableEntry("X", "x", "|", ">"),
     26: AztecTableEntry("Y", "y", "~", "?"),
-    27: AztecTableEntry("Z", "z", "^?", "["),
+    27: AztecTableEntry("Z", "z", chr(127), "["),
     28: AztecTableEntry("L/L", "U/S", "L/L", "]"),
     29: AztecTableEntry("M/L", "M/L", "U/L", "{"),
     30: AztecTableEntry("D/L", "D/L", "P/L", "}"),
@@ -80,7 +80,6 @@ def read_codewords(matrix: np.ndarray, layers: int, data_words: int) -> np.ndarr
             elif reading_direction == ReadingDirection.TOP:
                 bitmap.append(matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
             elif reading_direction == ReadingDirection.LEFT:
-                print(line, i, start_point[0], end_point[0]+1, start_point[1] - i + apply_to_borns, matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
                 bitmap.append(matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
         
         if line % 4 == 0:
@@ -110,8 +109,56 @@ def read_codewords(matrix: np.ndarray, layers: int, data_words: int) -> np.ndarr
             reading_direction = ReadingDirection.BOTTOM
 
     bitmap = np.concatenate(bitmap).astype(int)
-    print(bitmap)
-    decode_codewords(bitmap, data_words, layers)
+    corrected_bitmap = correct_data_bits(bitmap, layers, data_words)
+    decode_codewords(corrected_bitmap, data_words, layers)
+    return bitmap
+
+PRIM_POLY = {
+    6:  0x43,   # x^6 + x^5 + 1
+    8:  0x12d,  # x^8 + x^5 + x^3 + x^2 + 1
+    10: 0x409,  # x^10 + x^3 + 1
+    12: 0x1069  # x^12 + x^6 + x^5 + x^3 + 1
+}
+
+def correct_data_bits(bit_stream: np.ndarray,
+                      layers: int,
+                      data_words: int) -> np.ndarray:
+
+    if   layers <=  2: cw_size = 6
+    elif layers <=  8: cw_size = 8
+    elif layers <= 22: cw_size = 10
+    else:               cw_size = 12
+
+    prim = PRIM_POLY[cw_size]
+    nsize = (1 << cw_size) - 1 
+
+    total_words = len(bit_stream) // cw_size
+
+    symbols = [
+        int(''.join(str(b) for b in bit_stream[i*cw_size:(i+1)*cw_size]), 2)
+        for i in range(total_words)
+    ]
+
+    ecc_words = total_words - data_words
+
+    rs = reedsolo.RSCodec(
+        nsym=ecc_words,
+        nsize=nsize,
+        fcr=1,
+        generator=2,
+        c_exp=cw_size,
+        prim=prim,
+    )
+
+    decoded = rs.decode(symbols)
+    full_codeword = decoded[1]
+
+    corrected_bits = []
+    for sym in full_codeword:
+        for shift in range(cw_size-1, -1, -1):
+            corrected_bits.append((sym >> shift) & 1)
+
+    return corrected_bits
 
 
 def decode_codewords(bitmap, data_words, layers):
