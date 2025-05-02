@@ -24,7 +24,7 @@ class CodewordReader:
         self.aztec_type = aztec_type
         self.auto_correct = auto_correct
 
-    def is_reference(self, r, c):
+    def _is_reference(self, r, c):
         centre = self.matrix.shape[0] // 2
         return (r - centre) % 16 == 0 or (c - centre) % 16 == 0
 
@@ -39,16 +39,16 @@ class CodewordReader:
         for _ in range(1, self.layers*4 + 1):
             for i in range(apply_to_borns, square_size - 2 + apply_to_borns):
                 if reading_direction == ReadingDirection.BOTTOM:
-                    if not self.is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
+                    if not self._is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
                         bitmap.append(self.matrix[i, start_point[1]:end_point[1]+1])
                 elif reading_direction == ReadingDirection.RIGHT:
-                    if not self.is_reference(start_point[0], i) or self.aztec_type == AztecType.COMPACT:
+                    if not self._is_reference(start_point[0], i) or self.aztec_type == AztecType.COMPACT:
                         bitmap.append(self.matrix[start_point[0]:end_point[0]-1:-1, i])
                 elif reading_direction == ReadingDirection.TOP:
-                    if not self.is_reference(start_point[0]-i + apply_to_borns, start_point[1])  or self.aztec_type == AztecType.COMPACT:
+                    if not self._is_reference(start_point[0]-i + apply_to_borns, start_point[1])  or self.aztec_type == AztecType.COMPACT:
                         bitmap.append(self.matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
                 elif reading_direction == ReadingDirection.LEFT:
-                    if not self.is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
+                    if not self._is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
                         bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
 
             if reading_direction == ReadingDirection.BOTTOM:
@@ -71,7 +71,7 @@ class CodewordReader:
                 apply_to_borns += 2
                 start_point = end_point
                 start_point = (start_point[0] + 1, start_point[1])
-                if self.is_reference(start_point[0], start_point[1]):
+                if self._is_reference(start_point[0], start_point[1]):
                     start_point = (start_point[0] + 1, start_point[1] + 1)
                     square_size -= 2
                     apply_to_borns += 1
@@ -170,7 +170,12 @@ class CodewordReader:
         previous_mode = AztecTableType.UPPER
         single_shift    = False
         single_consumed = 0
-        while (i // codeword_size) < self.data_words:
+        while True:
+            bits_left = len(bits) - i
+            needed = 4 if current_mode == AztecTableType.DIGIT else 5
+            if bits_left < needed:
+                break 
+
             if single_shift and single_consumed == 1:
                 current_mode    = previous_mode
                 single_shift    = False
