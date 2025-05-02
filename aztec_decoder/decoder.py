@@ -13,10 +13,11 @@ __all__ = ["AztecDecoder"]
 
 
 class AztecDecoder:
-    def __init__(self, image_path: str | Path, *, auto_orient: bool = True, auto_correct: bool = True) -> None:
+    def __init__(self, image_path: str | Path, *, auto_orient: bool = True, auto_correct: bool = True, mode_auto_correct: bool = True) -> None:
         self.image_path  = Path(image_path)
         self._auto_orient = auto_orient
         self._auto_correct = auto_correct
+        self._mode_auto_correct = mode_auto_correct
 
     @cached_property
     def _raw_matrix(self):
@@ -49,7 +50,8 @@ class AztecDecoder:
         return ModeReader(
             self.matrix,
             bullseye.bounds,
-            bullseye.aztec_type
+            bullseye.aztec_type,
+            self._mode_auto_correct
         )
 
     @cached_property

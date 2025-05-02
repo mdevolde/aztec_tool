@@ -8,10 +8,11 @@ __all__ = ["ModeReader"]
 
 
 class ModeReader:
-    def __init__(self, matrix: np.ndarray, bounds: tuple, aztec_type: AztecType):
+    def __init__(self, matrix: np.ndarray, bounds: tuple, aztec_type: AztecType, auto_correct: bool = True):
         self.matrix = matrix
         self.bounds = bounds
         self.aztec_type = aztec_type
+        self.auto_correct = auto_correct
 
     def _read_mode_bits(self) -> list:
         bits = []
@@ -79,14 +80,18 @@ class ModeReader:
         return self._correct()
 
     def _extract_fields(self) -> dict:
-        if self.aztec_type == AztecType.COMPACT:
-            layers_bits = self.mode_bitmap[:2]
-            data_words_bits = self.mode_bitmap[2:8]
-            ecc_bits = self.mode_bitmap[8:]
+        if self.auto_correct:
+            bits = self.mode_corrected_bits
         else:
-            layers_bits = self.mode_bitmap[0:5]
-            data_words_bits = self.mode_bitmap[5:16]
-            ecc_bits = self.mode_bitmap[16:]
+            bits = self.mode_bitmap
+        if self.aztec_type == AztecType.COMPACT:
+            layers_bits = bits[:2]
+            data_words_bits = bits[2:8]
+            ecc_bits = bits[8:]
+        else:
+            layers_bits = bits[0:5]
+            data_words_bits = bits[5:16]
+            ecc_bits = bits[16:]
 
         layers = int(''.join(map(str, layers_bits)), 2) + 1
         data_words = int(''.join(map(str, data_words_bits)), 2) + 1
