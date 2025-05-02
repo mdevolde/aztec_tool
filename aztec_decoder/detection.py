@@ -1,80 +1,56 @@
+from functools import cached_property
 import numpy as np
-from enum import Enum
+
+from .enums import AztecType
+
+__all__ = ["BullseyeDetector"]
 
 
-class AztecType(Enum):
-    COMPACT = 0
-    FULL = 1
+class BullseyeDetector:
+    def __init__(self, matrix: np.ndarray):
+        self.matrix = matrix
+        self.layers = None
 
+    def _detect_bounds(self) -> tuple:
+        h, w = self.matrix.shape
+        cx, cy = w // 2, h // 2
 
-def detect_bullseye_bounds(matrix: np.ndarray) -> tuple:
-    h, w = matrix.shape
-    cx, cy = w // 2, h // 2
+        layer = 1
+        while True:
+            color = (layer + 1) % 2
 
-    layer = 1
-    while True:
-        color = (layer + 1) % 2
+            valid = True
+            for y in range(cy - layer, cy + layer + 1):
+                if self.matrix[y, cx - layer] != color or self.matrix[y, cx + layer] != color:
+                    valid = False
+                    break
+            for x in range(cx - layer, cx + layer + 1):
+                if self.matrix[cy - layer, x] != color or self.matrix[cy + layer, x] != color:
+                    valid = False
+                    break
 
-        valid = True
-        for y in range(cy - layer, cy + layer + 1):
-            if matrix[y, cx - layer] != color or matrix[y, cx + layer] != color:
-                valid = False
+            if not valid:
+                layer -= 1
                 break
-        for x in range(cx - layer, cx + layer + 1):
-            if matrix[cy - layer, x] != color or matrix[cy + layer, x] != color:
-                valid = False
-                break
+            layer += 1
 
-        if not valid:
-            layer -= 1
-            break
-        layer += 1
+        top_left = (cy - layer, cx - layer)
+        bottom_right = (cy + layer, cx + layer)
 
-    top_left = (cy - layer, cx - layer)
-    bottom_right = (cy + layer, cx + layer)
-
-    if layer - 2 == 2:
-        aztec_type = AztecType.COMPACT
-    else:
-        aztec_type = AztecType.FULL
-    return (top_left + bottom_right), aztec_type
-
-def read_orientation_patterns(matrix: np.ndarray, bullseye_bounds: tuple) -> list:
-    tl_y, tl_x, br_y, br_x = bullseye_bounds
-    tr_y, tr_x, bl_y, bl_x = tl_y, br_x, br_y, tl_x
+        self.layers = layer - 2
+        return top_left + bottom_right
     
-    tl_orientation = []
-    tl_orientation.append(int(matrix[tl_y, tl_x-1]))
-    tl_orientation.append(int(matrix[tl_y-1, tl_x-1]))
-    tl_orientation.append(int(matrix[tl_y-1, tl_x]))
+    @cached_property
+    def bounds(self) -> tuple:
+        return self._detect_bounds()
 
-    tr_orientation = []
-    tr_orientation.append(int(matrix[tr_y-1, tr_x]))
-    tr_orientation.append(int(matrix[tr_y-1, tr_x+1]))
-    tr_orientation.append(int(matrix[tr_y, tr_x+1]))
+    def _get_aztec_type(self) -> AztecType:
+        if self.layers == 2:
+            return AztecType.COMPACT
+        return AztecType.FULL
     
-    br_orientation = []
-    br_orientation.append(int(matrix[br_y, br_x+1]))
-    br_orientation.append(int(matrix[br_y+1, br_x+1]))
-    br_orientation.append(int(matrix[br_y+1, br_x]))
-    
-    bl_orientation = []
-    bl_orientation.append(int(matrix[bl_y+1, bl_x]))
-    bl_orientation.append(int(matrix[bl_y+1, bl_x-1]))
-    bl_orientation.append(int(matrix[bl_y, bl_x-1]))
-    
-    return [tl_orientation, tr_orientation, br_orientation, bl_orientation]
-
-def need_rotation(orientation_patterns: list) -> bool:
-    if orientation_patterns[0] == [1, 1, 1] and orientation_patterns[1] == [0, 1, 1] and orientation_patterns[2] == [1, 0, 0] and orientation_patterns[3] == [0, 0, 0]:
-        return False
-    return True
-
-def rotate_matrix(matrix: np.ndarray, orientation_patterns: list) -> np.ndarray:
-    for _ in range(4):
-        if need_rotation(orientation_patterns):
-            matrix = np.rot90(matrix, k=3)
-            orientation_patterns = read_orientation_patterns(matrix, detect_bullseye_bounds(matrix))
-        else:
-            break
-    return matrix
+    @cached_property
+    def aztec_type(self) -> AztecType:
+        if self.layers is None:
+            self._detect_bounds() # Ensure bounds are detected before getting aztec type because bounds are used to determine aztec type
+        return self._get_aztec_type()
