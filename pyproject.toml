@@ -13,7 +13,8 @@ urls = { Repository = "https://github.com/mdevolde/aztec_decoder.git" }
 dependencies = [
     "opencv-python",
     "numpy",
-    "reedsolo"
+    "reedsolo",
+    "toml"
 ]
 
 [build-system]
