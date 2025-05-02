@@ -36,7 +36,7 @@ class CodewordReader:
         end_point = (square_size - 1 - 2, 1) # - 2 because the two last lines are readed in a different direction
         apply_to_borns = 0
         
-        for line in range(1, self.layers*4 + 1):
+        for _ in range(1, self.layers*4 + 1):
             for i in range(apply_to_borns, square_size - 2 + apply_to_borns):
                 if reading_direction == ReadingDirection.BOTTOM:
                     if not self.is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
@@ -50,10 +50,6 @@ class CodewordReader:
                 elif reading_direction == ReadingDirection.LEFT:
                     if not self.is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
                         bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
-            
-            if line % 4 == 0:
-                square_size -= 4
-                apply_to_borns += 2
 
             if reading_direction == ReadingDirection.BOTTOM:
                 start_point = (start_point[0] + square_size - 1, start_point[1])
@@ -71,8 +67,14 @@ class CodewordReader:
                 end_point = (end_point[0] + 1, end_point[1] - square_size + 1 + 2)
                 reading_direction = ReadingDirection.LEFT
             elif reading_direction == ReadingDirection.LEFT:
+                square_size -= 4
+                apply_to_borns += 2
                 start_point = end_point
                 start_point = (start_point[0] + 1, start_point[1])
+                if self.is_reference(start_point[0], start_point[1]):
+                    start_point = (start_point[0] + 1, start_point[1] + 1)
+                    square_size -= 2
+                    apply_to_borns += 1
                 end_point = start_point
                 end_point = (end_point[0] + square_size - 1 - 2, end_point[1] + 1)
                 reading_direction = ReadingDirection.BOTTOM
@@ -211,14 +213,14 @@ class CodewordReader:
                 continue
 
             if char.startswith("FLG"):
-                n = self._bits_to_int(self.bits[i : i + 3])
+                n = self._bits_to_int(bits[i : i + 3])
                 i += 3
                 if n == 0:
                     chars.append("\x1D")
                 elif 1 <= n <= 6:
                     digits = ""
                     for _ in range(n):
-                        d = self._bits_to_int(self.bits[i : i + 4]); i += 4
+                        d = self._bits_to_int(bits[i : i + 4]); i += 4
                         digits += TableManager.get_char(d, AztecTableType.DIGIT)
                     eci_id = digits.zfill(6)
                     chars.append(f"[ECI:{eci_id}]")
