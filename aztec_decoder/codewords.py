@@ -3,7 +3,7 @@ import numpy as np
 import reedsolo
 
 from .tables import TableManager
-from .enums import ReadingDirection, AztecTableType
+from .enums import ReadingDirection, AztecTableType, AztecType
 
 __all__ = ["CodewordReader"]
 
@@ -17,10 +17,16 @@ class CodewordReader:
         12: 0x1069  # x^12 + x^6 + x^5 + x^3 + 1
     }
     
-    def __init__(self, matrix: np.ndarray, layers: int, data_words: int):
+    def __init__(self, matrix: np.ndarray, layers: int, data_words: int, aztec_type: AztecType, auto_correct: bool = True):
         self.matrix = matrix
         self.layers = layers
         self.data_words = data_words
+        self.aztec_type = aztec_type
+        self.auto_correct = auto_correct
+
+    def is_reference(self, r, c):
+        centre = self.matrix.shape[0] // 2
+        return (r - centre) % 16 == 0 or (c - centre) % 16 == 0
 
     def _read_bits(self) -> np.ndarray:
         bitmap = []
@@ -33,13 +39,17 @@ class CodewordReader:
         for line in range(1, self.layers*4 + 1):
             for i in range(apply_to_borns, square_size - 2 + apply_to_borns):
                 if reading_direction == ReadingDirection.BOTTOM:
-                    bitmap.append(self.matrix[i, start_point[1]:end_point[1]+1])
+                    if not self.is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
+                        bitmap.append(self.matrix[i, start_point[1]:end_point[1]+1])
                 elif reading_direction == ReadingDirection.RIGHT:
-                    bitmap.append(self.matrix[start_point[0]:end_point[0]-1:-1, i])
+                    if not self.is_reference(start_point[0], i) or self.aztec_type == AztecType.COMPACT:
+                        bitmap.append(self.matrix[start_point[0]:end_point[0]-1:-1, i])
                 elif reading_direction == ReadingDirection.TOP:
-                    bitmap.append(self.matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
+                    if not self.is_reference(start_point[0]-i + apply_to_borns, start_point[1])  or self.aztec_type == AztecType.COMPACT:
+                        bitmap.append(self.matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
                 elif reading_direction == ReadingDirection.LEFT:
-                    bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
+                    if not self.is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
+                        bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
             
             if line % 4 == 0:
                 square_size -= 4
@@ -122,14 +132,35 @@ class CodewordReader:
     @classmethod
     def _bits_to_bytes(cls, bits) -> bytes:
         return bytes(
-            self._bits_to_int(bits[i : i + 8]) for i in range(0, len(bits), 8)
+            cls._bits_to_int(bits[i : i + 8]) for i in range(0, len(bits), 8)
         )
 
-    def _decode(self, bitmap: list) -> str:
+    def _remove_stuff_bits(self, bits, cw_size, data_words):
+        cleaned = []
+        i = 0
+        words_seen = 0
+        while words_seen < data_words and i < len(bits):
+            run = bits[i:i + cw_size]
+            if all(b == run[0] for b in run[:-1]):
+                cleaned.extend(run[:-1])
+                i += cw_size
+            else:
+                cleaned.extend(run)
+                i += cw_size
+            words_seen += 1
+        start_padding = len(bits) % cw_size
+        return cleaned[start_padding:data_words * cw_size]
+
+    def _decode(self) -> str:
         if   self.layers <=  2: codeword_size = 6
         elif self.layers <=  8: codeword_size = 8
         elif self.layers <= 22: codeword_size = 10
         else:               codeword_size = 12
+
+        if self.auto_correct:
+            bits = self._remove_stuff_bits(self.corrected_bits, codeword_size, self.data_words)
+        else:
+            bits = self._remove_stuff_bits(self.bitmap, codeword_size, self.data_words)
 
         i = 0
         chars = []
@@ -137,7 +168,6 @@ class CodewordReader:
         previous_mode = AztecTableType.UPPER
         single_shift    = False
         single_consumed = 0
-
         while (i // codeword_size) < self.data_words:
             if single_shift and single_consumed == 1:
                 current_mode    = previous_mode
@@ -145,48 +175,50 @@ class CodewordReader:
                 single_consumed = 0
 
             if current_mode == AztecTableType.DIGIT:
-                symbol_bits = bitmap[i : i + 4]
+                symbol_bits = bits[i : i + 4]
                 i += 4
             else:
-                symbol_bits = bitmap[i : i + 5]
+                symbol_bits = bits[i : i + 5]
                 i += 5
 
             val  = self._bits_to_int(symbol_bits)
             char = TableManager.get_char(val, current_mode)
 
-            if char.endswith("/S"):
+            if char == "B/S":
+                if len(bits[i : i + 5]) == 0:
+                    break
+                length = self._bits_to_int(bits[i : i + 5])
+                i += 5
+                if length == 0:
+                    length = self._bits_to_int(bits[i : i + 11]) + 31
+                    i += 11
+
+                byte_bits  = bits[i : i + 8 * length]
+                i += 8 * length
+                chars.append(self._bits_to_bytes(byte_bits).decode("latin-1"))
+                continue
+
+            elif char.endswith("/S"):
                 previous_mode = current_mode
                 current_mode  = TableManager.letter_to_mode(char[0])
                 single_shift  = True
                 single_consumed = 0
                 continue
 
-            if char.endswith("/L"):
+            elif char.endswith("/L"):
                 current_mode = TableManager.letter_to_mode(char[0])
                 previous_mode = current_mode
                 continue
 
-            if char == "B/S":
-                length = self._bits_to_int(bitmap[i : i + 5])
-                i += 5
-                if length == 0:
-                    length = self._bits_to_int(bitmap[i : i + 11]) + 31
-                    i += 11
-
-                byte_bits  = bitmap[i : i + 8 * length]
-                i += 8 * length
-                chars.append(self._bits_to_bytes(byte_bits).decode("latin-1"))
-                continue
-
             if char.startswith("FLG"):
-                n = self._bits_to_int(bitmap[i : i + 3])
+                n = self._bits_to_int(self.bits[i : i + 3])
                 i += 3
                 if n == 0:
                     chars.append("\x1D")
                 elif 1 <= n <= 6:
                     digits = ""
                     for _ in range(n):
-                        d = self._bits_to_int(bitmap[i : i + 4]); i += 4
+                        d = self._bits_to_int(self.bits[i : i + 4]); i += 4
                         digits += TableManager.get_char(d, AztecTableType.DIGIT)
                     eci_id = digits.zfill(6)
                     chars.append(f"[ECI:{eci_id}]")
@@ -205,4 +237,4 @@ class CodewordReader:
     
     @cached_property
     def decoded_string(self) -> str:
-        return self._decode(self.corrected_bits)
+        return self._decode()
