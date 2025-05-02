@@ -1,7 +1,9 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Dict
 
 from .enums import AztecTableType
+from .exceptions import InvalidParameterError, SymbolDecodeError
 
 __all__ = ["TableManager"]
 
@@ -61,8 +63,20 @@ class TableManager:
 
     @classmethod
     def get_char(cls, index: int, mode: AztecTableType) -> str:
-        return getattr(cls.mapping[index], mode.name.lower())
+        try:
+            entry = cls.mapping[index]
+        except KeyError as exc:
+            raise SymbolDecodeError(f"symbol index {index} outside 0-31 range") from exc
+        char = getattr(entry, mode.name.lower())
+        if char is None:
+            raise SymbolDecodeError(f"symbol {index} undefined in {mode.name} table")
+        return char
     
     @classmethod
     def letter_to_mode(cls, char: str) -> AztecTableType:
-        return cls.LETTER2MODE[char[0]]
+        if not char:
+            raise InvalidParameterError("empty latch letter")
+        try:
+            return cls.LETTER2MODE[char[0].upper()]
+        except KeyError as exc:
+            raise InvalidParameterError(f"unknown latch letter '{char}'") from exc

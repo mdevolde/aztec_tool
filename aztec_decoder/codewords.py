@@ -1,9 +1,18 @@
+from __future__ import annotations
 from functools import cached_property
 import numpy as np
 import reedsolo
 
 from .tables import TableManager
 from .enums import ReadingDirection, AztecTableType, AztecType
+from .exceptions import (
+    BitReadError,
+    BitStuffingError,
+    InvalidParameterError,
+    ReedSolomonError,
+    SymbolDecodeError,
+    StreamTerminationError
+)
 
 __all__ = ["CodewordReader"]
 
@@ -18,6 +27,15 @@ class CodewordReader:
     }
     
     def __init__(self, matrix: np.ndarray, layers: int, data_words: int, aztec_type: AztecType, auto_correct: bool = True):
+        if layers < 1:
+            raise InvalidParameterError("layers must be ≥ 1")
+        if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+            raise InvalidParameterError("matrix must be a square 2-D ndarray")
+        if matrix.shape[0] % 2 == 0:
+            raise InvalidParameterError("Aztec symbol side length must be odd")
+        if data_words < 1:
+            raise InvalidParameterError("data_words must be ≥ 1")
+        
         self.matrix = matrix
         self.layers = layers
         self.data_words = data_words
@@ -38,18 +56,21 @@ class CodewordReader:
         
         for _ in range(1, self.layers*4 + 1):
             for i in range(apply_to_borns, square_size - 2 + apply_to_borns):
-                if reading_direction == ReadingDirection.BOTTOM:
-                    if not self._is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
-                        bitmap.append(self.matrix[i, start_point[1]:end_point[1]+1])
-                elif reading_direction == ReadingDirection.RIGHT:
-                    if not self._is_reference(start_point[0], i) or self.aztec_type == AztecType.COMPACT:
-                        bitmap.append(self.matrix[start_point[0]:end_point[0]-1:-1, i])
-                elif reading_direction == ReadingDirection.TOP:
-                    if not self._is_reference(start_point[0]-i + apply_to_borns, start_point[1])  or self.aztec_type == AztecType.COMPACT:
-                        bitmap.append(self.matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
-                elif reading_direction == ReadingDirection.LEFT:
-                    if not self._is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
-                        bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
+                try:
+                    if reading_direction == ReadingDirection.BOTTOM:
+                        if not self._is_reference(i, start_point[1]) or self.aztec_type == AztecType.COMPACT:
+                            bitmap.append(self.matrix[i, start_point[1]:end_point[1]+1])
+                    elif reading_direction == ReadingDirection.RIGHT:
+                        if not self._is_reference(start_point[0], i) or self.aztec_type == AztecType.COMPACT:
+                            bitmap.append(self.matrix[start_point[0]:end_point[0]-1:-1, i])
+                    elif reading_direction == ReadingDirection.TOP:
+                        if not self._is_reference(start_point[0]-i + apply_to_borns, start_point[1])  or self.aztec_type == AztecType.COMPACT:
+                            bitmap.append(self.matrix[start_point[0]-i + apply_to_borns, start_point[1]:end_point[1]-1:-1])
+                    else: # LEFT
+                        if not self._is_reference(start_point[0], start_point[1] - i + apply_to_borns) or self.aztec_type == AztecType.COMPACT:
+                            bitmap.append(self.matrix[start_point[0]:end_point[0]+1, start_point[1] - i + apply_to_borns])
+                except IndexError as exc:
+                    raise BitReadError(f"matrix index out of range while reading (layer offset={apply_to_borns})") from exc
 
             if reading_direction == ReadingDirection.BOTTOM:
                 start_point = (start_point[0] + square_size - 1, start_point[1])
@@ -79,42 +100,49 @@ class CodewordReader:
                 end_point = (end_point[0] + square_size - 1 - 2, end_point[1] + 1)
                 reading_direction = ReadingDirection.BOTTOM
 
-        bitmap = np.concatenate(bitmap).astype(int)
-        return bitmap
+        if not bitmap:
+            raise BitReadError("no data modules extracted - check bull's-eye/layer count")
+        
+        return np.concatenate(bitmap).astype(int)
 
     @cached_property
     def bitmap(self) -> np.ndarray:
         return self._read_bits()
 
     def _correct(self) -> list:
-        if   self.layers <=  2: cw_size = 6
-        elif self.layers <=  8: cw_size = 8
-        elif self.layers <= 22: cw_size = 10
-        else:               cw_size = 12
+        if self.layers <=  2:
+            cw_size = 6
+        elif self.layers <=  8:
+            cw_size = 8
+        elif self.layers <= 22:
+            cw_size = 10
+        else:
+            cw_size = 12
 
         prim = self.PRIM_POLY[cw_size]
         nsize = (1 << cw_size) - 1 
-
         total_words = len(self.bitmap) // cw_size
+        ecc_words = total_words - self.data_words
+        if ecc_words <= 0:
+            raise InvalidParameterError("data_words exceeds total code-words in the symbol")
 
         symbols = [
             int(''.join(str(b) for b in self.bitmap[i*cw_size:(i+1)*cw_size]), 2)
             for i in range(total_words)
         ]
 
-        ecc_words = total_words - self.data_words
-
-        rs = reedsolo.RSCodec(
-            nsym=ecc_words,
-            nsize=nsize,
-            fcr=1,
-            generator=2,
-            c_exp=cw_size,
-            prim=prim,
-        )
-
-        decoded = rs.decode(symbols)
-        full_codeword = decoded[1]
+        try:
+            rs = reedsolo.RSCodec(
+                nsym=ecc_words,
+                nsize=nsize,
+                fcr=1,
+                generator=2,
+                c_exp=cw_size,
+                prim=prim,
+            )
+            _, full_codeword, _ = rs.decode(symbols)
+        except reedsolo.ReedSolomonError as exc:
+            raise ReedSolomonError(str(exc)) from exc
 
         corrected_bits = []
         for sym in full_codeword:
@@ -143,6 +171,8 @@ class CodewordReader:
         words_seen = 0
         while words_seen < data_words and i < len(bits):
             run = bits[i:i + cw_size]
+            if len(run) != cw_size:
+                raise BitStuffingError("incomplete code-word at end of stream")
             if all(b == run[0] for b in run[:-1]):
                 cleaned.extend(run[:-1])
                 i += cw_size
@@ -189,18 +219,25 @@ class CodewordReader:
                 i += 5
 
             val  = self._bits_to_int(symbol_bits)
-            char = TableManager.get_char(val, current_mode)
+            try:
+                char = TableManager.get_char(val, current_mode)
+            except KeyError as exc:
+                raise SymbolDecodeError(f"value {val} undefined in {current_mode.name} table") from exc
 
             if char == "B/S":
-                if len(bits[i : i + 5]) == 0:
-                    break
+                if len(bits) - i < 5:
+                    raise StreamTerminationError("Byte-shift announced but length field missing")
                 length = self._bits_to_int(bits[i : i + 5])
                 i += 5
                 if length == 0:
+                    if len(bits) - i < 11:
+                        raise StreamTerminationError("Byte-shift length=0 but 11-bit extension missing")
                     length = self._bits_to_int(bits[i : i + 11]) + 31
                     i += 11
 
                 byte_bits  = bits[i : i + 8 * length]
+                if len(byte_bits) != 8 * length:
+                    raise StreamTerminationError("Byte-shift claims more data than available")
                 i += 8 * length
                 chars.append(self._bits_to_bytes(byte_bits).decode("latin-1"))
                 continue
@@ -218,11 +255,15 @@ class CodewordReader:
                 continue
 
             if char.startswith("FLG"):
+                if len(bits) - i < 3:
+                    raise StreamTerminationError("FLG announced but flag length bits missing")
                 n = self._bits_to_int(bits[i : i + 3])
                 i += 3
                 if n == 0:
                     chars.append("\x1D")
                 elif 1 <= n <= 6:
+                    if len(bits) - i < 4 * n:
+                        raise StreamTerminationError("ECI digits truncated")
                     digits = ""
                     for _ in range(n):
                         d = self._bits_to_int(bits[i : i + 4]); i += 4
@@ -230,7 +271,7 @@ class CodewordReader:
                     eci_id = digits.zfill(6)
                     chars.append(f"[ECI:{eci_id}]")
                 else:
-                    raise ValueError("FLG(7) reserved/illegal")
+                    raise SymbolDecodeError("FLG(7) is reserved/illegal")
                 continue
 
             if char in ("U/S", "L/S", "M/S", "P/S", "D/S"):

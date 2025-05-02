@@ -8,6 +8,7 @@ from .orientation import OrientationManager
 from .mode        import ModeReader
 from .codewords   import CodewordReader
 from .enums       import AztecType
+from .exceptions import InvalidParameterError
 
 __all__ = ["AztecDecoder"]
 
@@ -15,6 +16,10 @@ __all__ = ["AztecDecoder"]
 class AztecDecoder:
     def __init__(self, image_path: str | Path, *, auto_orient: bool = True, auto_correct: bool = True, mode_auto_correct: bool = True) -> None:
         self.image_path  = Path(image_path)
+        if not self.image_path.exists():
+            raise InvalidParameterError("image file not found")
+        if not self.image_path.is_file():
+            raise InvalidParameterError("image_path is not a file")
         self._auto_orient = auto_orient
         self._auto_correct = auto_correct
         self._mode_auto_correct = mode_auto_correct
@@ -39,10 +44,7 @@ class AztecDecoder:
     def matrix(self):
         if not self._auto_orient:
             return self._raw_matrix
-        return OrientationManager(
-            self._raw_matrix,
-            self.bullseye_bounds
-        ).rotate_if_needed()
+        return OrientationManager(self._raw_matrix, self.bullseye_bounds).rotate_if_needed()
 
     @cached_property
     def _mode(self):
