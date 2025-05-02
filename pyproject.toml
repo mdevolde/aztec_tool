@@ -1,5 +1,5 @@
 [project]
-name = "aztec_decoder"
+name = "aztec_tool"
 version = "0.1.0"
 requires-python = ">=3.9"
 description = "A tool to extract all information from Aztec codes."
@@ -8,7 +8,7 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Martin Devolder", email = "martin.devolder2@gmail.com" }
 ]
-urls = { Repository = "https://github.com/mdevolde/aztec_decoder.git" }
+urls = { Repository = "https://github.com/mdevolde/aztec_tool.git" }
 
 dependencies = [
     "opencv-python",

@@ -1,4 +1,4 @@
-# Aztec decoder 🛸
+# Aztec tool 🛸
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 *A fast, pure‑Python Aztec Code reader with auto‑orientation and Reed–Solomon correction.*
@@ -16,10 +16,10 @@
 
 This library is compatible with **Python 3.9** and above.
 
-To install the latest version of Aztec decoder, you can use pip. Open your terminal and run the following command (in a virtual environment if you want to keep your system clean):
+To install the latest version of Aztec tool, you can use pip. Open your terminal and run the following command (in a virtual environment if you want to keep your system clean):
 
 ```bash
-pip install --upgrade aztec_decoder
+pip install --upgrade aztec_tool
 ```
 
 If you cloned the repository, you can install it using pip as well, in the root directory of the project:
@@ -40,9 +40,9 @@ The library allows you to decode Aztec barcodes from images. First, you need to 
 The most common way to use the library is to use the `AztecDecoder` class. You can create an instance of the class and call the `decode` method with the path to the image file as an argument:
 
 ```python
->>> from aztec_decoder import decode
+>>> from aztec_tool import decode
 >>> decode("welcome_lib.jpg")
-'Welcome to Aztec decoder lib !'
+'Welcome to Aztec tool lib !'
 >>>
 ```
 
@@ -56,7 +56,7 @@ If you need to access more specific data, you can use the `AztecDecoder` class d
 >>> decoder.mode_info
 {'layers': 3, 'data_words': 21, 'ecc_bits': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]}
 >>> decoder.decode()
-'Welcome to Aztec decoder lib !'
+'Welcome to Aztec tool lib !'
 ```
 
 When you're using the `decode` function or the `AztecDecoder` class, you can also pass three optional parameters:
@@ -77,7 +77,7 @@ The full changelog is available in the [CHANGELOG.md](CHANGELOG.md) file.
 The plan for the next releases is available in the [TODO.md](TODO.md) file.
 
 ## License
-The Aztec decoder is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+The Aztec tool is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ## Resources
 These resources were very useful to understand the Aztec code and build this library:

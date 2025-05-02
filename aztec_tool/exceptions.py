@@ -1,5 +1,5 @@
-# exceptions.py - centralised error hierarchy for the Aztec decoder
-"""Hierarchy of exceptions used throughout the Aztec-decoder project.
+# exceptions.py - centralised error hierarchy for the Aztec tool
+"""Hierarchy of exceptions used throughout the Aztec-tool project.
 
 All project-specific errors inherit from :class:`AztecDecoderError`.  Each
 sub-class is tailored to a distinct stage of the pipeline so that the caller
