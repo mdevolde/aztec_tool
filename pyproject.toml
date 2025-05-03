@@ -23,6 +23,9 @@ dev = [
   "pytest-cov"
 ]
 
+[project.scripts]
+aztec-tool = "aztec_tool.__main__:main"
+
 [tool.setuptools]
 packages = ["aztec_tool"]
 
