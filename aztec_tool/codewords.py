@@ -203,9 +203,12 @@ class CodewordReader:
         else:
             cw_size = 12
 
+        start_padding = len(self.bitmap) % cw_size
+        bits = self.bitmap[start_padding:]
+
         prim = self.PRIM_POLY[cw_size]
         nsize = (1 << cw_size) - 1
-        total_words = len(self.bitmap) // cw_size
+        total_words = len(bits) // cw_size
         ecc_words = total_words - self.data_words
         if ecc_words <= 0:
             raise InvalidParameterError(
@@ -214,7 +217,7 @@ class CodewordReader:
 
         symbols = [
             int(
-                "".join(str(b) for b in self.bitmap[i * cw_size : (i + 1) * cw_size]), 2
+                "".join(str(b) for b in bits[i * cw_size : (i + 1) * cw_size]), 2
             )
             for i in range(total_words)
         ]
@@ -322,9 +325,7 @@ class CodewordReader:
 
             if char == "B/S":
                 if len(bits) - i < 5:
-                    raise StreamTerminationError(
-                        "Byte-shift announced but length field missing"
-                    )
+                    continue
                 length = self._bits_to_int(bits[i : i + 5])
                 i += 5
                 if length == 0:
