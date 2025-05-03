@@ -72,6 +72,25 @@ If you need very specific data, you can access the `AztecDecoder` class attribut
 
 This library has his own exceptions. You can find them in the `exceptions.py` file. The most common exception is `AztecDecoderError`, which is the parent class of all the exceptions in the library.
 
+The tool is also available as a command line interface (CLI). You can use it by running the following command in your terminal:
+
+```bash
+$ aztec-tool welcome_lib.jpg
+Welcome to Aztec tool lib !
+```
+
+If you want to print the metadata of the Aztec code, you can use the `--info` option:
+
+```bash
+$ aztec-tool welcome_lib.jpg --info
+Type:         COMPACT
+Layers:       3
+Data words:   21
+ECC bits:     01010101010010101000
+```
+
+To have all the options available, you can run `aztec-tool -h  `.
+
 ## Changelog
 The full changelog is available in the [CHANGELOG.md](CHANGELOG.md) file.
 
