@@ -43,8 +43,8 @@ __all__: list[str] = [
 try:
     from importlib.metadata import version as _pkg_version
     __version__: str = _pkg_version(__name__)
-except PackageNotFoundError: # If the package is not installed in the environment, read the version from pyproject.toml
-    with open("pyproject.toml", "rb") as f:
+except PackageNotFoundError: # pragma: no cover
+    with open("pyproject.toml", "rb") as f: # If the package is not installed in the environment, read the version from pyproject.toml
         __version__ = toml.loads(f.read().decode('utf-8'))["project"]["version"]
 
 def decode(

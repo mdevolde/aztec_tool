@@ -1,4 +1,6 @@
 # Aztec tool 🛸
+[![aztec tool on pypi](https://badge.fury.io/py/aztec-tool.svg)](https://pypi.org/project/aztec-tool/)
+[![Test with PyTest](https://github.com/mdevolde/aztec_tool/workflows/Test%20with%20PyTest/badge.svg)](https://github.com/mdevolde/aztec_tool/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 *A fast, pure‑Python Aztec Code reader with auto‑orientation and Reed–Solomon correction.*

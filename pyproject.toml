@@ -2,7 +2,7 @@
 name = "aztec_tool"
 version = "0.1.0"
 requires-python = ">=3.9"
-description = "A tool to extract all information from Aztec codes."
+description = "A fast, pure-Python Aztec Code reader with auto-orientation and Reed-Solomon correction."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 authors = [
@@ -16,6 +16,15 @@ dependencies = [
     "reedsolo",
     "toml"
 ]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov"
+]
+
+[tool.setuptools]
+packages = ["aztec_tool"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
