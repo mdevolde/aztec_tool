@@ -216,9 +216,7 @@ class CodewordReader:
             )
 
         symbols = [
-            int(
-                "".join(str(b) for b in bits[i * cw_size : (i + 1) * cw_size]), 2
-            )
+            int("".join(str(b) for b in bits[i * cw_size : (i + 1) * cw_size]), 2)
             for i in range(total_words)
         ]
 
