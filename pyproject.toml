@@ -30,8 +30,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "black",
   "pytest>=8.3",
-  "pytest-cov"
+  "pytest-cov",
+  "ruff"
 ]
 
 [project.urls]
