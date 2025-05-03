@@ -3,6 +3,7 @@ from functools import cached_property
 import cv2
 import numpy as np
 from pathlib import Path
+from typing import Union
 
 from .exceptions import InvalidParameterError, UnsupportedSymbolError
 
@@ -10,14 +11,39 @@ __all__ = ["AztecMatrix"]
 
 
 class AztecMatrix:
-    def __init__(self, image_path: str):
+    """Convert a *cropped* Aztec-code image into a binary module matrix.
+
+    The extractor assumes the image already contains **only** the Aztec
+    symbol (no perspective skew, no surrounding background).
+
+    Parameters
+    ----------
+    image_path : Union[str, Path]
+        Path to the file with the Aztec code.
+
+    Attributes
+    ----------
+    matrix : numpy.ndarray, shape (N, N)
+        Lazy property - the binary module matrix (0 = white, 1 = black).
+
+    Raises
+    ------
+    InvalidParameterError
+        * The image file does not exist or cannot be read
+        * Estimated cell size is zero (image too small or blurred)
+        * Sampling point falls outside the image (wrong crop or resolution)
+    UnsupportedSymbolError
+        Computed side length *N* is even or outside the range 15 - 151.
+    """
+
+    def __init__(self, image_path: Union[str, Path]) -> None:
         self.image_path = Path(image_path)
         if not self.image_path.exists():
             raise InvalidParameterError(f"file not found: {self.image_path}")
         if not self.image_path.is_file():
             raise InvalidParameterError(f"path is not a file: {self.image_path}")
 
-    def _estimate_N(self, binary) -> int:
+    def _estimate_N(self, binary: np.ndarray) -> int:
         h, w = binary.shape
         row = (binary[h // 2, :] < 128).astype(int)
 

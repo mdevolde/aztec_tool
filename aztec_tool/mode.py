@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import cached_property
 import numpy as np
 import reedsolo
+from typing import Optional, Tuple, List, Dict, Union
 
 from .detection import AztecType
 from .exceptions import InvalidParameterError, ModeFieldError, ReedSolomonError
@@ -10,13 +11,60 @@ __all__ = ["ModeReader"]
 
 
 class ModeReader:
+    """Read and (optionally) RS-correct the *mode message*.
+
+    The mode message surrounds the bull’s-eye and encodes:
+
+    * **layers** (number of data layers, 1-32)
+    * **data_words** (number of code-words that carry data)
+    * **ecc_bits** (reserved bits)
+
+    It is 28 bits long for *compact* symbols and 40 bits for *full* symbols.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Square binary matrix (0/1) of the Aztec symbol.
+    bounds : Tuple[int, int, int, int]
+        Bull’s-eye bounds returned by :class:`BullseyeDetector`
+        - format ``(top, left, bottom, right)``.
+    aztec_type : AztecType
+        ``COMPACT`` or ``FULL``.
+    auto_correct : Optional[bool], default ``True``
+        Apply Reed-Solomon correction to the mode message.
+
+    Attributes
+    ----------
+    mode_bitmap : numpy.ndarray
+        Raw 28/40-bit sequence (before ECC), order clockwise starting on top.
+    mode_corrected_bits : List[int]
+        Bit sequence after Reed-Solomon correction (lazy).
+    mode_fields : Dict[str, Union[int, List[int]]]
+        Parsed fields - keys ``layers``, ``data_words``, ``ecc_bits``.
+
+    Raises
+    ------
+    InvalidParameterError
+        *bounds* length ≠ 4, or matrix not square/odd dimensions.
+    ModeFieldError
+        Index out of range while reading, wrong bit-length, layers out of range.
+    ReedSolomonError
+        RS correction failed on the mode message.
+
+    Examples
+    --------
+    >>> mr = ModeReader(matrix, bounds, AztecType.FULL)
+    >>> mr.mode_fields
+    {'layers': 6, 'data_words': 125, 'ecc_bits': [...]}
+    """
+
     def __init__(
         self,
         matrix: np.ndarray,
-        bounds: tuple,
+        bounds: Tuple[int, int, int, int],
         aztec_type: AztecType,
-        auto_correct: bool = True,
-    ):
+        auto_correct: Optional[bool] = True,
+    ) -> None:
         if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
             raise InvalidParameterError("matrix must be a square 2-D ndarray")
         if matrix.shape[0] % 2 == 0:
@@ -33,7 +81,7 @@ class ModeReader:
         self.aztec_type = aztec_type
         self.auto_correct = auto_correct
 
-    def _read_mode_bits(self) -> list:
+    def _read_mode_bits(self) -> List[int]:
         bits = []
         try:
             tl_y, tl_x, br_y, br_x = self.bounds
@@ -95,7 +143,7 @@ class ModeReader:
     def mode_bitmap(self) -> np.ndarray:
         return self._read_mode_bits()
 
-    def _correct(self) -> list:
+    def _correct(self) -> List[int]:
         if self.aztec_type == AztecType.COMPACT:
             nsym = 5
         else:
@@ -121,10 +169,10 @@ class ModeReader:
         return corrected_bits
 
     @cached_property
-    def mode_corrected_bits(self) -> list[int]:
+    def mode_corrected_bits(self) -> List[int]:
         return self._correct()
 
-    def _extract_fields(self) -> dict:
+    def _extract_fields(self) -> Dict[str, Union[int, List[int]]]:
         if self.auto_correct:
             bits = self.mode_corrected_bits
         else:
@@ -151,5 +199,5 @@ class ModeReader:
         return {"layers": layers, "data_words": data_words, "ecc_bits": ecc_bits}
 
     @cached_property
-    def mode_fields(self) -> dict:
+    def mode_fields(self) -> Dict[str, Union[int, List[int]]]:
         return self._extract_fields()

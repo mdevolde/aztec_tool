@@ -10,6 +10,8 @@ __all__ = ["TableManager"]
 
 @dataclass
 class AztecTableEntry:
+    """Single row of the 5 Aztec character tables (index 0-31)."""
+
     upper: str
     lower: str
     mixed: str
@@ -18,6 +20,30 @@ class AztecTableEntry:
 
 
 class TableManager:
+    """Lookup helper for the five Aztec shift/latch character tables.
+
+    Aztec codes use **five tables** (UPPER, LOWER, MIXED, PUNCT, DIGIT).
+    Each 5-bit value (0-31) maps to a *character* that depends on the
+    currently active table (digit are 4-bit value).
+
+    The mapping is stored in :pyattr:`mapping`.  Two convenience class
+    methods are provided:
+
+    * :py:meth:`get_char` - return the character for *(index, table)* or
+      raise :class:`SymbolDecodeError`.
+    * :py:meth:`letter_to_mode` - convert the first letter of a *shift/latch
+      token* (``'U'``, ``'L'``, …) into the corresponding
+      :class:`AztecTableType`.
+
+    The class never needs instantiation, all helpers are `@classmethod`s.
+
+    Examples
+    --------
+    >>> TableManager.get_char(2, AztecTableType.UPPER)
+    'A'
+    >>> TableManager.letter_to_mode('m')
+    <AztecTableType.MIXED: 2>
+    """
 
     LETTER2MODE = {
         "U": AztecTableType.UPPER,
@@ -64,6 +90,13 @@ class TableManager:
 
     @classmethod
     def get_char(cls, index: int, mode: AztecTableType) -> str:
+        """Return the character for *index* in the selected *mode* table.
+
+        Raises
+        ------
+        SymbolDecodeError
+            *index* outside 0-31 or undefined in the chosen table.
+        """
         try:
             entry = cls.mapping[index]
         except KeyError as exc:
@@ -75,6 +108,13 @@ class TableManager:
 
     @classmethod
     def letter_to_mode(cls, char: str) -> AztecTableType:
+        """Convert a latch/shift letter (``'U'``, ``'L'``, *etc.*) to the enum.
+
+        Raises
+        ------
+        InvalidParameterError
+            The string is empty or the first letter is not U/L/M/P/D.
+        """
         if not char:
             raise InvalidParameterError("empty latch letter")
         try:

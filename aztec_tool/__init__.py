@@ -2,7 +2,7 @@ from __future__ import annotations
 import toml
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
-from typing import Any
+from typing import Any, Union, Optional
 
 from .decoder import AztecDecoder
 from .exceptions import (
@@ -52,13 +52,50 @@ except PackageNotFoundError:  # pragma: no cover
 
 
 def decode(
-    image_path: str | Path,
+    image_path: Union[str, Path],
     *,
-    auto_orient: bool = True,
-    auto_correct: bool = True,
-    mode_auto_correct: bool = True,
+    auto_orient: Optional[bool] = True,
+    auto_correct: Optional[bool] = True,
+    mode_auto_correct: Optional[bool] = True,
     **kwargs: Any,
 ) -> str:
+    """Decode an Aztec Code image in **one line**.
+
+    This convenience wrapper instantiates :class:`~aztec_tool.decoder.AztecDecoder`
+    and returns its :pyattr:`~aztec_tool.decoder.AztecDecoder.message`
+    property.  All keyword arguments are forwarded unchanged.
+
+    Parameters
+    ----------
+    image_path : Union[str, pathlib.Path]
+        Path to the cropped image containing the Aztec symbol.
+    auto_orient : Optional[bool], default ``True``
+        Auto-rotate the matrix to the canonical orientation.
+    auto_correct : Optional[bool], default ``True``
+        Apply Reed-Solomon correction on the *data* code-words.
+    mode_auto_correct : Optional[bool], default ``True``
+        Apply Reed-Solomon correction on the *mode* message.
+    **kwargs
+        Reserved for future options, currently ignored.
+
+    Returns
+    -------
+    str
+        The decoded user message.
+
+    Raises
+    ------
+    InvalidParameterError
+        The image path is invalid or the file cannot be opened.
+    BullseyeDetectionError, OrientationError, ReedSolomonError, …
+        Any exception propagated by the underlying decoder phases.
+
+    Examples
+    --------
+    >>> from aztec_tool import decode
+    >>> decode("ticket.png")
+    'EVENT: Concert\\nROW 12 SEAT 34'
+    """
     return AztecDecoder(
         image_path,
         auto_orient=auto_orient,

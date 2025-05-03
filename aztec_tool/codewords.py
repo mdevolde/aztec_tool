@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import cached_property
 import numpy as np
 import reedsolo
+from typing import List, Optional
 
 from .tables import TableManager
 from .enums import ReadingDirection, AztecTableType, AztecType
@@ -18,6 +19,45 @@ __all__ = ["CodewordReader"]
 
 
 class CodewordReader:
+    """Read the data spiral, apply Reed-Solomon correction and decode code-words.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Square binary matrix (0/1) representing the Aztec symbol.
+    layers : int
+        Number of data layers (excluding the bull's-eye).
+    data_words : int
+        Expected count of data code-words (script does *not* include ECC words).
+    aztec_type : AztecType
+        ``AztecType.COMPACT`` or ``AztecType.FULL`` according to the spec.
+    auto_correct : Optional[bool], default ``True``
+        If *True*, a Reed-Solomon pass is executed before high-level decoding.
+
+    Attributes
+    ----------
+    bitmap : numpy.ndarray
+        Raw bit-stream extracted from the symbol (before ECC correction).
+    corrected_bits : List[int]
+        Bit-stream after Reed-Solomon decoding and bit-stuff removal.
+    decoded_string : str
+        Final user message built with the Aztec shift/latch tables.
+
+    Raises
+    ------
+    InvalidParameterError
+        One of the constructor arguments is incoherent (e.g. *layers* < 1).
+    BitReadError
+        Data spiral extraction failed (index out of matrix or empty result).
+    ReedSolomonError
+        The Reed-Solomon decoder could not correct the symbol.
+    BitStuffingError
+        Stuffed/padding bits do not follow the spec rules.
+    SymbolDecodeError
+        An index maps to no entry in the current character table.
+    StreamTerminationError
+        Premature end of bit-stream (e.g. incomplete Byte-shift segment).
+    """
 
     PRIM_POLY = {
         6: 0x43,  # x^6 + x^5 + 1
@@ -32,8 +72,8 @@ class CodewordReader:
         layers: int,
         data_words: int,
         aztec_type: AztecType,
-        auto_correct: bool = True,
-    ):
+        auto_correct: Optional[bool] = True,
+    ) -> None:
         if layers < 1:
             raise InvalidParameterError("layers must be ≥ 1")
         if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
@@ -49,7 +89,7 @@ class CodewordReader:
         self.aztec_type = aztec_type
         self.auto_correct = auto_correct
 
-    def _is_reference(self, r, c):
+    def _is_reference(self, r: int, c: int) -> bool:
         centre = self.matrix.shape[0] // 2
         return (r - centre) % 16 == 0 or (c - centre) % 16 == 0
 
@@ -153,7 +193,7 @@ class CodewordReader:
     def bitmap(self) -> np.ndarray:
         return self._read_bits()
 
-    def _correct(self) -> list:
+    def _correct(self) -> List[int]:
         if self.layers <= 2:
             cw_size = 6
         elif self.layers <= 8:
@@ -200,18 +240,20 @@ class CodewordReader:
         return corrected_bits
 
     @cached_property
-    def corrected_bits(self) -> list[int]:
+    def corrected_bits(self) -> List[int]:
         return self._correct()
 
     @classmethod
-    def _bits_to_int(cls, bits) -> int:
+    def _bits_to_int(cls, bits: List[int]) -> int:
         return int("".join(str(b) for b in bits), 2)
 
     @classmethod
-    def _bits_to_bytes(cls, bits) -> bytes:
+    def _bits_to_bytes(cls, bits: List[int]) -> bytes:
         return bytes(cls._bits_to_int(bits[i : i + 8]) for i in range(0, len(bits), 8))
 
-    def _remove_stuff_bits(self, bits, cw_size, data_words):
+    def _remove_stuff_bits(
+        self, bits: List[int], cw_size: int, data_words: int
+    ) -> List[int]:
         cleaned = []
         i = 0
         words_seen = 0
