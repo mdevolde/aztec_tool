@@ -19,7 +19,7 @@ class AztecMatrix:
 
     def _estimate_N(self, binary) -> int:
         h, w = binary.shape
-        row = (binary[h//2, :] < 128).astype(int)
+        row = (binary[h // 2, :] < 128).astype(int)
 
         runs = []
         current = row[0]
@@ -35,7 +35,9 @@ class AztecMatrix:
 
         cell_size = int(np.median(runs))
         if cell_size == 0:
-            raise InvalidParameterError("estimated cell size is zero - image too small / blurred")
+            raise InvalidParameterError(
+                "estimated cell size is zero - image too small / blurred"
+            )
         N = int(round(w / cell_size))
         if N % 2 == 0 or not (15 <= N <= 151):
             raise UnsupportedSymbolError(f"unsupported Aztec side length: {N}")
@@ -52,7 +54,9 @@ class AztecMatrix:
         h, w = binary.shape
         cell_size = h // N
         if cell_size == 0:
-            raise InvalidParameterError("cell size computed as zero - check image resolution") 
+            raise InvalidParameterError(
+                "cell size computed as zero - check image resolution"
+            )
 
         module_matrix = np.zeros((N, N), dtype=int)
 
@@ -61,12 +65,13 @@ class AztecMatrix:
                 cx = int((x + 0.5) * cell_size)
                 cy = int((y + 0.5) * cell_size)
                 if cy >= h or cx >= binary.shape[1]:
-                    raise InvalidParameterError("sampling point outside image - wrong N or skewed image")
+                    raise InvalidParameterError(
+                        "sampling point outside image - wrong N or skewed image"
+                    )
                 module_matrix[y, x] = 1 if binary[cy, cx] < 128 else 0
-        
+
         return module_matrix
-    
+
     @cached_property
     def matrix(self) -> np.ndarray:
         return self._extract_matrix()
-    

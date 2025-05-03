@@ -21,17 +21,33 @@ class OrientationManager:
     def _read_patterns(self) -> list:
         tl_y, tl_x, br_y, br_x = self.bounds
         tr_y, tr_x, bl_y, bl_x = tl_y, br_x, br_y, tl_x
-        
+
         try:
-            tl_orientation = [int(self.matrix[tl_y, tl_x-1]), int(self.matrix[tl_y-1, tl_x-1]), int(self.matrix[tl_y-1, tl_x])]
-            tr_orientation = [int(self.matrix[tr_y-1, tr_x]), int(self.matrix[tr_y-1, tr_x+1]), int(self.matrix[tr_y, tr_x+1])]
-            br_orientation = [int(self.matrix[br_y, br_x+1]), int(self.matrix[br_y+1, br_x+1]), int(self.matrix[br_y+1, br_x])]
-            bl_orientation = [int(self.matrix[bl_y+1, bl_x]), int(self.matrix[bl_y+1, bl_x-1]), int(self.matrix[bl_y, bl_x-1])]
+            tl_orientation = [
+                int(self.matrix[tl_y, tl_x - 1]),
+                int(self.matrix[tl_y - 1, tl_x - 1]),
+                int(self.matrix[tl_y - 1, tl_x]),
+            ]
+            tr_orientation = [
+                int(self.matrix[tr_y - 1, tr_x]),
+                int(self.matrix[tr_y - 1, tr_x + 1]),
+                int(self.matrix[tr_y, tr_x + 1]),
+            ]
+            br_orientation = [
+                int(self.matrix[br_y, br_x + 1]),
+                int(self.matrix[br_y + 1, br_x + 1]),
+                int(self.matrix[br_y + 1, br_x]),
+            ]
+            bl_orientation = [
+                int(self.matrix[bl_y + 1, bl_x]),
+                int(self.matrix[bl_y + 1, bl_x - 1]),
+                int(self.matrix[bl_y, bl_x - 1]),
+            ]
         except IndexError as exc:
             raise OrientationError("orientation pattern indices out of range") from exc
-        
+
         return [tl_orientation, tr_orientation, br_orientation, bl_orientation]
-    
+
     @cached_property
     def patterns(self) -> list:
         return self._read_patterns()
@@ -45,7 +61,7 @@ class OrientationManager:
             else:
                 return self.matrix
         raise OrientationError("unable to align orientation markers after 4 rotations")
-    
+
     _TARGET = ([1, 1, 1], [0, 1, 1], [1, 0, 0], [0, 0, 0])
 
     def _need_rotation(self) -> bool:

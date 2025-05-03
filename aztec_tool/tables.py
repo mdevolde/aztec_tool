@@ -16,6 +16,7 @@ class AztecTableEntry:
     punct: str
     digit: Optional[str] = None
 
+
 class TableManager:
 
     LETTER2MODE = {
@@ -71,7 +72,7 @@ class TableManager:
         if char is None:
             raise SymbolDecodeError(f"symbol {index} undefined in {mode.name} table")
         return char
-    
+
     @classmethod
     def letter_to_mode(cls, char: str) -> AztecTableType:
         if not char:

@@ -9,9 +9,11 @@ class ReadingDirection(Enum):
     TOP = 2
     LEFT = 3
 
+
 class AztecType(Enum):
     COMPACT = 0
     FULL = 1
+
 
 class AztecTableType(Enum):
     UPPER = 0

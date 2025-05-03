@@ -5,6 +5,7 @@ from aztec_tool.matrix import AztecMatrix
 from aztec_tool.enums import AztecType
 from aztec_tool.exceptions import InvalidParameterError
 
+
 def test_mode_fields(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
@@ -14,7 +15,12 @@ def test_mode_fields(compact_img):
         aztec_type=AztecType.COMPACT,
     )
     fields = dec.mode_fields
-    assert fields["layers"] == 3 and fields["data_words"] == 22 and len(fields["ecc_bits"]) == 20
+    assert (
+        fields["layers"] == 3
+        and fields["data_words"] == 22
+        and len(fields["ecc_bits"]) == 20
+    )
+
 
 def test_mode_without_auto_correct(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
@@ -26,7 +32,12 @@ def test_mode_without_auto_correct(compact_img):
         auto_correct=False,
     )
     fields = dec.mode_fields
-    assert fields["layers"] == 3 and fields["data_words"] == 22 and len(fields["ecc_bits"]) == 20
+    assert (
+        fields["layers"] == 3
+        and fields["data_words"] == 22
+        and len(fields["ecc_bits"]) == 20
+    )
+
 
 def test_exception_non_square_matrix(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
@@ -42,6 +53,7 @@ def test_exception_non_square_matrix(compact_img):
             aztec_type=AztecType.COMPACT,
         )
 
+
 def test_exception_non_odd_matrix(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
@@ -56,6 +68,7 @@ def test_exception_non_odd_matrix(compact_img):
             aztec_type=AztecType.COMPACT,
         )
 
+
 def test_exception_non_complete_bounds(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
@@ -69,6 +82,7 @@ def test_exception_non_complete_bounds(compact_img):
             bounds=bounds,
             aztec_type=AztecType.COMPACT,
         )
+
 
 def test_exception_out_of_bounds(compact_img):
     matrix = AztecMatrix(str(compact_img)).matrix
