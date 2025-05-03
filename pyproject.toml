@@ -8,11 +8,22 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Martin Devolder", email = "martin.devolder2@gmail.com" }
 ]
-urls = { Repository = "https://github.com/mdevolde/aztec_tool.git" }
-
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Graphics :: Capture :: Scanners",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["aztec", "barcode", "decoder", "2d barcode", "image recognition", "aztec code"]
 dependencies = [
-    "opencv-python",
     "numpy",
+    "opencv-python",
     "reedsolo",
     "toml"
 ]
@@ -22,6 +33,13 @@ dev = [
   "pytest>=8.3",
   "pytest-cov"
 ]
+
+[project.urls]
+Homepage = "https://github.com/mdevolde/aztec_tool.git"
+Documentation = "https://github.com/mdevolde/aztec_tool/blob/master/README.md"
+Repository = "https://github.com/mdevolde/aztec_tool.git"
+Issues = "https://github.com/mdevolde/aztec_tool/issues"
+Changelog = "https://github.com/mdevolde/aztec_tool/blob/master/CHANGELOG.md"
 
 [project.scripts]
 aztec-tool = "aztec_tool.__main__:main"
