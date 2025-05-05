@@ -1,8 +1,10 @@
 # Aztec tool 🛸
 [![aztec tool on pypi](https://badge.fury.io/py/aztec-tool.svg)](https://pypi.org/project/aztec-tool/)
 [![Test with PyTest](https://github.com/mdevolde/aztec_tool/workflows/Test%20with%20PyTest/badge.svg)](https://github.com/mdevolde/aztec_tool/actions)
+[![codecov](https://codecov.io/gh/mdevolde/aztec_tool/branch/master/graph/badge.svg)](https://codecov.io/gh/mdevolde/aztec_tool)
 [![Python Versions](https://img.shields.io/pypi/pyversions/aztec-tool.svg)](https://devguide.python.org/versions/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/mdevolde/aztec_tool/pulls)
 
 *A fast, pure‑Python Aztec Code reader with auto‑orientation and Reed-Solomon correction.*
 
@@ -10,9 +12,13 @@
 ## Table of content
 1. [Installation](#installation)
 2. [Usage](#usage)
-3. [Changelog](#changelog)
-4. [TODO](#todo)
-5. [License](#license)
+3. [Useful links](#useful-links)
+   - [Contributing](#contributing)
+   - [Security](#security)
+   - [Changelog](#changelog)
+   - [TODO](#todo)
+   - [License](#license)
+   - [Code of Conduct](#code-of-conduct)
 6. [Resources](#Resources)
 
 ## Installation
@@ -52,7 +58,7 @@ The most common way to use the library is to use the `AztecDecoder` class. You c
 If you need to access more specific data, you can use the `AztecDecoder` class directly:
 
 ```python
->>> from aztec_decoder import AztecDecoder
+>>> from aztec_tool import AztecDecoder
 >>> decoder = AztecDecoder("welcome_lib.jpg")
 >>> decoder.aztec_type
 <AztecType.COMPACT: 0>
@@ -71,7 +77,7 @@ If you have some problems with the correction, it can be useful to set `auto_cor
 
 If you need very specific data, you can access the `AztecDecoder` class attributes, or directly the various classes used in the library.
 
-This library has his own exceptions. You can find them in the `exceptions.py` file. The most common exception is `AztecDecoderError`, which is the parent class of all the exceptions in the library.
+This library has its own exceptions. You can find them in the `exceptions.py` file. The most common exception is `AztecDecoderError`, which is the parent class of all the exceptions in the library.
 
 The tool is also available as a command line interface (CLI). You can use it by running the following command in your terminal:
 
@@ -90,16 +96,26 @@ Data words:   21
 ECC bits:     01010101010010101000
 ```
 
-To have all the options available, you can run `aztec-tool -h  `.
+You can view all available options by running `aztec-tool -h`.
 
-## Changelog
+## Useful links
+### Contributing
+Contributions are welcome! If you want to contribute to the project, please read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+
+### Security
+If you discover any security vulnerabilities, please read the procedure in the [SECURITY.md](SECURITY.md) file.
+
+### Changelog
 The full changelog is available in the [CHANGELOG.md](CHANGELOG.md) file.
 
-## TODO
+### TODO
 The plan for the next releases is available in the [TODO.md](TODO.md) file.
 
-## License
+### License
 The Aztec tool is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+### Code of Conduct
+The Aztec tool is committed to providing a friendly, safe, and welcoming environment for all. Please read the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file for more details.
 
 ## Resources
 These resources were very useful to understand the Aztec code and build this library:
