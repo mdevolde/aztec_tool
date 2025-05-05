@@ -82,6 +82,14 @@ class ModeReader:
         self.auto_correct = auto_correct
 
     def _read_mode_bits(self) -> List[int]:
+        """Read the mode message bits in clockwise order.
+        The order is: top row, right column, bottom row, left column.
+        
+        Returns
+        -------
+        List[int]
+            The mode message bits in clockwise order.
+        """
         bits = []
         try:
             tl_y, tl_x, br_y, br_x = self.bounds
@@ -151,6 +159,7 @@ class ModeReader:
         rs = reedsolo.RSCodec(nsym=nsym, nsize=15, fcr=1, generator=2, c_exp=4)
         if len(self.mode_bitmap) % 4 != 0:
             raise ModeFieldError("mode bitmap length not multiple of 4")
+        # We split the mode bitmap into 4-bit symbols
         symbols = [
             int("".join(map(str, self.mode_bitmap[i : i + 4])), 2)
             for i in range(0, len(self.mode_bitmap), 4)
@@ -173,6 +182,22 @@ class ModeReader:
         return self._correct()
 
     def _extract_fields(self) -> Dict[str, Union[int, List[int]]]:
+        """Extract the mode message fields (layers, data words, ecc bits).
+        For compact:
+        - layers: 2 bits (max 4 layers)
+        - data words: 6 bits (max 64 data words)
+        - ecc bits: 20 bits
+        For full:
+        - layers: 5 bits (max 32 layers)
+        - data words: 11 bits (max 2048 data words)
+        - ecc bits: 24 bits
+
+        Returns
+        -------
+        Dict[str, Union[int, List[int]]]
+            Dictionary with keys ``layers``, ``data_words``, and ``ecc_bits``.
+            The values are the corresponding integers or lists of bits.
+        """
         if self.auto_correct:
             bits = self.mode_corrected_bits
         else:

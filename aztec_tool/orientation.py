@@ -56,6 +56,15 @@ class OrientationManager:
         self.bounds = bounds
 
     def _read_patterns(self) -> List[List[int]]:
+        """Read the four orientation patterns from the matrix.
+        Orientation patterns are 3x3 matrices located at the corners of
+        the bull's-eye.
+
+        Returns
+        -------
+        List[List[int]]
+            The four orientation patterns read TL→TR→BR→BL.
+        """
         tl_y, tl_x, br_y, br_x = self.bounds
         tr_y, tr_x, bl_y, bl_x = tl_y, br_x, br_y, tl_x
 

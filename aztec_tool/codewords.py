@@ -90,6 +90,23 @@ class CodewordReader:
         self.auto_correct = auto_correct
 
     def _is_reference(self, r: int, c: int) -> bool:
+        """Check if the given coordinates are part of the reference grid.
+        A coordinate is part of the reference grid if it is a multiple of 16
+        from the center of the matrix. The center is defined as the middle of the
+        matrix (i.e. the middle row and column).
+
+        Parameters
+        ----------
+        r : int
+            Row index of the coordinate.
+        c : int
+            Column index of the coordinate.
+        
+        Returns
+        -------
+        bool
+            True if the coordinate is part of the reference grid, False otherwise.
+        """
         centre = self.matrix.shape[0] // 2
         return (r - centre) % 16 == 0 or (c - centre) % 16 == 0
 
@@ -97,11 +114,14 @@ class CodewordReader:
         bitmap = []
         square_size = self.matrix.shape[0]
         reading_direction = ReadingDirection.BOTTOM
-        start_point = (0, 0)
+        start_point = (0, 0) # We start reading from the top left corner to the bottom left corner
         end_point = (
-            square_size - 1 - 2,
+            square_size - 1 - 2, # - 2 because the two last lines are readed in a different direction
             1,
-        )  # - 2 because the two last lines are readed in a different direction
+        )
+        # The number of cells to skip when we are reading layers in the middle of the matrix
+        # So, if we are reading the first layer, we skip 0 cells, if we are reading the second layer, we skip 2 cells, etc.
+        # It's used to adjust the starting point and the ending point of the reading
         apply_to_borns = 0
 
         for _ in range(1, self.layers * 4 + 1):
@@ -170,10 +190,13 @@ class CodewordReader:
                 end_point = (end_point[0] + 1, end_point[1] - square_size + 1 + 2)
                 reading_direction = ReadingDirection.LEFT
             elif reading_direction == ReadingDirection.LEFT:
+                # When we are going to the next layer, the square size is reduced by 4
+                # because we are skipping the two last lines and the two first lines of the previous layer
                 square_size -= 4
                 apply_to_borns += 2
                 start_point = end_point
                 start_point = (start_point[0] + 1, start_point[1])
+                # If the start point is a reference, we can skip this "one cell layer"
                 if self._is_reference(start_point[0], start_point[1]):
                     start_point = (start_point[0] + 1, start_point[1] + 1)
                     square_size -= 2
@@ -204,7 +227,7 @@ class CodewordReader:
             cw_size = 12
 
         start_padding = len(self.bitmap) % cw_size
-        bits = self.bitmap[start_padding:]
+        bits = self.bitmap[start_padding:] # We need to have a multiple of cw_size, so we remove the padding bits
 
         prim = self.PRIM_POLY[cw_size]
         nsize = (1 << cw_size) - 1
@@ -215,6 +238,7 @@ class CodewordReader:
                 "data_words exceeds total code-words in the symbol"
             )
 
+        # We split the bits into code-words of size cw_size
         symbols = [
             int("".join(str(b) for b in bits[i * cw_size : (i + 1) * cw_size]), 2)
             for i in range(total_words)
@@ -255,6 +279,26 @@ class CodewordReader:
     def _remove_stuff_bits(
         self, bits: List[int], cw_size: int, data_words: int
     ) -> List[int]:
+        """Remove the stuffing bits from the bit-stream.
+        A stuffed bit is a bit that is added to the bit-stream when there are cw_size-1
+        consecutive bits of the same value. The stuffed bit is the opposite of the last bit.
+        We need to remove the stuffed bits from the bit-stream before decoding it.
+        Remove also the padding bits at the beginning of the stream.
+
+        Parameters
+        ----------
+        bits : List[int]
+            The bit-stream to clean.
+        cw_size : int
+            The size of the code-words (6, 8, 10 or 12).
+        data_words : int
+            The number of data code-words in the symbol.
+        
+        Returns
+        -------
+        List[int]
+            The cleaned bit-stream without the stuffed bits and the padding bits.
+        """
         cleaned = []
         i = 0
         words_seen = 0
@@ -269,6 +313,7 @@ class CodewordReader:
                 cleaned.extend(run)
                 i += cw_size
             words_seen += 1
+        # If the total number of bits is not a multiple of cw_size, we need to remove the padding bits
         start_padding = len(bits) % cw_size
         return cleaned[start_padding : data_words * cw_size]
 
@@ -291,7 +336,7 @@ class CodewordReader:
 
         i = 0
         chars = []
-        current_mode = AztecTableType.UPPER
+        current_mode = AztecTableType.UPPER # Default mode is UPPER
         previous_mode = AztecTableType.UPPER
         single_shift = False
         single_consumed = 0
@@ -308,10 +353,10 @@ class CodewordReader:
 
             if current_mode == AztecTableType.DIGIT:
                 symbol_bits = bits[i : i + 4]
-                i += 4
+                i += 4 # DIGIT mode uses 4 bits for each symbol
             else:
                 symbol_bits = bits[i : i + 5]
-                i += 5
+                i += 5 # UPPER, LOWER, MIXED and PUNCT modes use 5 bits for each symbol
 
             val = self._bits_to_int(symbol_bits)
             try:
