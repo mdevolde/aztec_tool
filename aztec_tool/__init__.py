@@ -4,7 +4,7 @@ from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from typing import Any, Union, Optional
 
-from .decoder import AztecDecoder
+from .decoder import AztecDecoder, MultiAztecDecoder
 from .exceptions import (
     AztecDecoderError,
     InvalidParameterError,
@@ -26,6 +26,7 @@ __all__: list[str] = [
     "decode",
     # Main class
     "AztecDecoder",
+    "MultiAztecDecoder",
     # Exceptions
     "AztecDecoderError",
     "InvalidParameterError",

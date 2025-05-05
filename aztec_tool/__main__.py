@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 from . import __version__
-from .decoder import AztecDecoder
+from .decoder import AztecDecoder, MultiAztecDecoder
 from .exceptions import AztecDecoderError
 
 
@@ -34,6 +34,11 @@ def main():
         help="Disable mode auto-correction",
     )
     parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Decode all Aztec codes in the image",
+    )
+    parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
@@ -43,27 +48,37 @@ def main():
         parser.print_help()
         sys.exit(0)
 
-    try:
-        decoder = AztecDecoder(
+    if args.all:
+        decoders = MultiAztecDecoder(
             args.image,
             auto_orient=args.no_auto_orient,
             auto_correct=args.no_auto_correct,
             mode_auto_correct=args.no_mode_auto_correct,
-        )
-        if args.info:
-            print(f"Type:         {decoder.aztec_type.name}")
-            print(f"Layers:       {decoder.mode_info['layers']}")
-            print(f"Data words:   {decoder.mode_info['data_words']}")
-            print(
-                f"ECC bits:     {"".join([str(bit) for bit in decoder.mode_info['ecc_bits']])}"
+        ).decoders
+    else:
+        decoders = [
+            AztecDecoder(
+                args.image,
+                auto_orient=args.no_auto_orient,
+                auto_correct=args.no_auto_correct,
+                mode_auto_correct=args.no_mode_auto_correct,
             )
-        elif args.debug:
-            print("Bitmap:")
-            print(decoder.bitmap)
-            print("Corrected bits:")
-            print(decoder.corrected_bits)
-        else:
-            print(decoder.decode())
-    except AztecDecoderError as e:
-        print(f"[error] {e}", file=sys.stderr)
-        sys.exit(1)
+        ]
+    for i, decoder in enumerate(decoders):
+        try:
+            if args.info:
+                print(f"Type:         {decoder.aztec_type.name}")
+                print(f"Layers:       {decoder.mode_info['layers']}")
+                print(f"Data words:   {decoder.mode_info['data_words']}")
+                print(
+                    f"ECC bits:     {"".join([str(bit) for bit in decoder.mode_info['ecc_bits']])}"
+                )
+            elif args.debug:
+                print("Bitmap:")
+                print(decoder.bitmap)
+                print("Corrected bits:")
+                print(decoder.corrected_bits)
+            else:
+                print(decoder.decode())
+        except AztecDecoderError as e:
+            print(f"[error in decoder {i}] {e}", file=sys.stderr)

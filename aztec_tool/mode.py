@@ -84,7 +84,7 @@ class ModeReader:
     def _read_mode_bits(self) -> List[int]:
         """Read the mode message bits in clockwise order.
         The order is: top row, right column, bottom row, left column.
-        
+
         Returns
         -------
         List[int]

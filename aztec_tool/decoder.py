@@ -12,7 +12,7 @@ from .codewords import CodewordReader
 from .enums import AztecType
 from .exceptions import InvalidParameterError
 
-__all__ = ["AztecDecoder"]
+__all__ = ["AztecDecoder", "MultiAztecDecoder"]
 
 
 class AztecDecoder:
@@ -25,8 +25,12 @@ class AztecDecoder:
 
         Parameters
         ----------
-        image_path : Union[str, Path]
+        image_path : Optional[Union[str, Path]]
             Path to the image file **already cropped** to the Aztec symbol.
+            If not provided, the *matrix* parameter must be used instead.
+        matrix : Optional[np.ndarray]
+            Binary matrix (0/1) of the Aztec symbol.  If not provided, the
+            *image_path* parameter must be used instead.
         auto_orient : Optional[bool], default ``True``
             If *True*, the matrix is rotated automatically so that orientation
             patterns match the canonical position (black-white corner pattern).
@@ -79,23 +83,41 @@ class AztecDecoder:
 
     def __init__(
         self,
-        image_path: Union[str, Path],
+        image_path: Optional[Union[str, Path]] = None,
         *,
+        matrix: Optional[np.ndarray] = None,
         auto_orient: Optional[bool] = True,
         auto_correct: Optional[bool] = True,
         mode_auto_correct: Optional[bool] = True,
     ) -> None:
-        self.image_path = Path(image_path)
-        if not self.image_path.exists():
-            raise InvalidParameterError("image file not found")
-        if not self.image_path.is_file():
-            raise InvalidParameterError("image_path is not a file")
+        if matrix is None and image_path is None:
+            raise InvalidParameterError(
+                "either 'image_path' or 'matrix' must be provided"
+            )
+
+        self._input_matrix: Optional[np.ndarray] = None
+        if matrix is not None:
+            if not isinstance(matrix, np.ndarray) or matrix.ndim != 2:
+                raise InvalidParameterError(
+                    "'matrix' must be a 2-D numpy array of 0/1 values"
+                )
+            self._input_matrix = matrix.astype(int)
+            self.image_path = None
+        else:
+            self.image_path = Path(image_path)  # type: ignore[arg-type]
+            if not self.image_path.exists():
+                raise InvalidParameterError("image file not found")
+            if not self.image_path.is_file():
+                raise InvalidParameterError("image_path is not a file")
+
         self._auto_orient = auto_orient
         self._auto_correct = auto_correct
         self._mode_auto_correct = mode_auto_correct
 
     @cached_property
     def _raw_matrix(self) -> np.ndarray:
+        if self._input_matrix is not None:
+            return self._input_matrix
         return AztecMatrix(str(self.image_path)).matrix
 
     @cached_property
@@ -154,3 +176,80 @@ class AztecDecoder:
     def decode(self) -> str:
         """Return the decoded user message (alias of :pyattr:`message`)."""
         return self.message
+
+
+class MultiAztecDecoder:
+    """
+    MultiAztecDecoder is a utility class for decoding multiple Aztec codes from an image.
+
+    Parameters
+    ----------
+        image_path (Union[str, Path]): The path to the image containing Aztec codes.
+        _auto_orient (bool): Whether to automatically orient the Aztec codes. Defaults to True.
+        _auto_correct (bool): Whether to apply error correction to the decoded data. Defaults to True.
+        _mode_auto_correct (bool): Whether to apply mode-specific error correction. Defaults to True.
+
+    Attributes
+    ----------
+        _matrices (List[np.ndarray]): A list of matrices representing the Aztec codes found in the image.
+        decoders (List[AztecDecoder]): A list of AztecDecoder instances for each detected Aztec code.
+        messages (List[str]): A list of successfully decoded messages from the Aztec codes.
+
+    Raises
+    ------
+        InvalidParameterError: If the provided image path does not exist or is not a file.
+    """
+
+    def __init__(
+        self,
+        image_path: Union[str, Path],
+        *,
+        auto_orient: bool = True,
+        auto_correct: bool = True,
+        mode_auto_correct: bool = True,
+    ) -> None:
+        self.image_path = Path(image_path)
+        if not self.image_path.exists():
+            raise InvalidParameterError("image file not found")
+        if not self.image_path.is_file():
+            raise InvalidParameterError("image_path is not a file")
+        self._auto_orient = auto_orient
+        self._auto_correct = auto_correct
+        self._mode_auto_correct = mode_auto_correct
+
+    @cached_property
+    def _matrices(self) -> List[np.ndarray]:
+        return AztecMatrix(str(self.image_path), multiple=True).matrices
+
+    @cached_property
+    def decoders(self) -> List[AztecDecoder]:
+        subs: List[AztecDecoder] = []
+        for mat in self._matrices:
+            try:
+                subs.append(
+                    AztecDecoder(
+                        matrix=mat,
+                        auto_orient=self._auto_orient,
+                        auto_correct=self._auto_correct,
+                        mode_auto_correct=self._mode_auto_correct,
+                    )
+                )
+            except Exception:
+                # Ignore errors in the sub-decoders
+                continue
+        return subs
+
+    @property
+    def messages(self) -> List[str]:
+        """Decoded messages (only successful ones)."""
+        messages = []
+        for decoder in self.decoders:
+            try:
+                messages.append(decoder.decode())
+            except Exception:
+                self.decoders.remove(decoder)
+        return messages
+
+    def decode_all(self) -> List[str]:
+        """Return the decoded user messages (alias of :pyattr:`messages`)."""
+        return self.messages

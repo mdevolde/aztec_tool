@@ -101,7 +101,7 @@ class CodewordReader:
             Row index of the coordinate.
         c : int
             Column index of the coordinate.
-        
+
         Returns
         -------
         bool
@@ -114,9 +114,14 @@ class CodewordReader:
         bitmap = []
         square_size = self.matrix.shape[0]
         reading_direction = ReadingDirection.BOTTOM
-        start_point = (0, 0) # We start reading from the top left corner to the bottom left corner
+        start_point = (
+            0,
+            0,
+        )  # We start reading from the top left corner to the bottom left corner
         end_point = (
-            square_size - 1 - 2, # - 2 because the two last lines are readed in a different direction
+            square_size
+            - 1
+            - 2,  # - 2 because the two last lines are readed in a different direction
             1,
         )
         # The number of cells to skip when we are reading layers in the middle of the matrix
@@ -227,7 +232,9 @@ class CodewordReader:
             cw_size = 12
 
         start_padding = len(self.bitmap) % cw_size
-        bits = self.bitmap[start_padding:] # We need to have a multiple of cw_size, so we remove the padding bits
+        bits = self.bitmap[
+            start_padding:
+        ]  # We need to have a multiple of cw_size, so we remove the padding bits
 
         prim = self.PRIM_POLY[cw_size]
         nsize = (1 << cw_size) - 1
@@ -293,7 +300,7 @@ class CodewordReader:
             The size of the code-words (6, 8, 10 or 12).
         data_words : int
             The number of data code-words in the symbol.
-        
+
         Returns
         -------
         List[int]
@@ -336,7 +343,7 @@ class CodewordReader:
 
         i = 0
         chars = []
-        current_mode = AztecTableType.UPPER # Default mode is UPPER
+        current_mode = AztecTableType.UPPER  # Default mode is UPPER
         previous_mode = AztecTableType.UPPER
         single_shift = False
         single_consumed = 0
@@ -353,10 +360,10 @@ class CodewordReader:
 
             if current_mode == AztecTableType.DIGIT:
                 symbol_bits = bits[i : i + 4]
-                i += 4 # DIGIT mode uses 4 bits for each symbol
+                i += 4  # DIGIT mode uses 4 bits for each symbol
             else:
                 symbol_bits = bits[i : i + 5]
-                i += 5 # UPPER, LOWER, MIXED and PUNCT modes use 5 bits for each symbol
+                i += 5  # UPPER, LOWER, MIXED and PUNCT modes use 5 bits for each symbol
 
             val = self._bits_to_int(symbol_bits)
             try:
