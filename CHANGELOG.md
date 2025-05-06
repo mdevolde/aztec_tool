@@ -15,3 +15,8 @@
 - Adding a `CONTRIBUTING.md` file to the project.
 - Fix a bug when there is a padding, in the correction of the data.
 - Fix a bug when there is a B/S before the end of the data.
+
+# 0.1.4 (2025-05-06)
+- Adding some doc for contributors (`SECURITY.md` and `CODE_OF_CONDUCT.md` files, templates for issues and pull requests).
+- Adding docstrings and comments to the code.
+- Adding auto crop functionality to the Aztec tool (see the `README.md` file for more details).
