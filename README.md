@@ -9,6 +9,12 @@
 *A fast, pure‑Python Aztec Code reader with auto‑orientation and Reed-Solomon correction.*
 
 -------------
+
+Please note that the library is still under development, and some features are unstable. Typically, some Aztec files can be read incorrectly because the image has been exported incorrectly in matrix.
+
+All contributions are welcome!
+
+-------------
 ## Table of content
 1. [Installation](#installation)
 2. [Usage](#usage)
@@ -44,9 +50,9 @@ This library installs the following dependencies:
 - [toml](https://pypi.org/project/toml/) for version reading
 
 ## Usage
-The library allows you to decode Aztec barcodes from images. First, you need to have your Aztec barcode perfectly cropped in an image.
+The library allows you to decode Aztec barcodes from images.
 
-The most common way to use the library is to use the `AztecDecoder` class. You can create an instance of the class and call the `decode` method with the path to the image file as an argument:
+The most common way to use the library is to use the `AztecDecoder` class. You can create an instance of the class and call the `decode` method with the path to the image file as an argument. With this class, you need to have your Aztec barcode perfectly cropped in an image.
 
 ```python
 >>> from aztec_tool import decode
@@ -68,7 +74,20 @@ If you need to access more specific data, you can use the `AztecDecoder` class d
 'Welcome to Aztec tool lib !'
 ```
 
-When you're using the `decode` function or the `AztecDecoder` class, you can also pass three optional parameters:
+If you don't have the Aztec barcode perfectly cropped in an image, you can use this class to cropper it automatically:
+```python
+>>> from aztec_tool import MultiAztecDecoder
+>>> multi_decoder = MultiAztecDecoder("welcome_lib_non_cropped.jpg")
+>>> decoder = multi_decoder.decoders[0]
+>>> decoder.aztec_type
+<AztecType.COMPACT: 0>
+>>> decoder.mode_info
+{'layers': 3, 'data_words': 21, 'ecc_bits': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]}
+>>> decoder.decode()
+'Welcome to Aztec tool lib !'
+```
+
+When you're using the `decode` function or the `AztecDecoder` (or `MultiAztecDecoder`) class, you can also pass three optional parameters:
 - `auto_orient`: Default is `True`. If set to `True`, the image will be automatically rotated to the correct orientation before decoding. This is useful if the barcode is reversed or rotated.
 - `auto_correct`: Default is `True`. If set to `True`, the data in the Aztec barcode will be automatically corrected. This is useful if the barcode is damaged or has errors.
 - `auto_mode_correct`: Default is `True`. If set to `True`, the mode data in the Aztec barcode will be automatically corrected. This is useful if the barcode is damaged or has errors.

@@ -1,6 +1,6 @@
 [project]
 name = "aztec_tool"
-version = "0.1.3"
+version = "0.1.4"
 requires-python = ">=3.9"
 description = "A fast, pure-Python Aztec Code reader with auto-orientation and Reed-Solomon correction."
 readme = { file = "README.md", content-type = "text/markdown" }
