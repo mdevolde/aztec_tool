@@ -1,21 +1,4 @@
-# exceptions.py - centralised error hierarchy for the Aztec tool
-"""Hierarchy of exceptions used throughout the Aztec-tool project.
-
-All project-specific errors inherit from :class:`AztecDecoderError`.  Each
-sub-class is tailored to a distinct stage of the pipeline so that the caller
-can catch an entire family (e.g. *any* RS-related error) or a single precise
-issue (e.g. bit stuffing overflow).
-
-Usage example
--------------
->>> try:
-...     decoder = AztecDecoder(path)
-...     msg = decoder.decode()
-... except ReedSolomonError as err:
-...     logger.error("RS decode failed: %s", err)
-... except AztecDecoderError as err:
-...     logger.error("Generic decode failure: %s", err)
-"""
+"""Hierarchy of exceptions used throughout the Aztec-tool project."""
 
 from __future__ import annotations
 

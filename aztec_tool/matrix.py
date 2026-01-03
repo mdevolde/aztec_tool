@@ -1,3 +1,5 @@
+"""Aztec Code matrix extractor from cropped images."""
+
 from __future__ import annotations
 
 from functools import cached_property
@@ -18,24 +20,15 @@ class AztecMatrix:
     The extractor assumes the image already contains **only** the Aztec
     symbol (no perspective skew, no surrounding background).
 
-    Parameters
-    ----------
-    image_path : Union[str, Path]
-        Path to the file with the Aztec code.
+    :param image_path: Path to the file with the Aztec code.
+    :type image_path: Union[str, Path]
+    :param multiple: If ``True``, detect multiple Aztec codes in the image, defaults to ``False``
+    :type multiple: Optional[bool]
 
-    Attributes
-    ----------
-    matrix : numpy.ndarray, shape (N, N)
-        Lazy property - the binary module matrix (0 = white, 1 = black).
-
-    Raises
-    ------
-    InvalidParameterError
-        * The image file does not exist or cannot be read
-        * Estimated cell size is zero (image too small or blurred)
-        * Sampling point falls outside the image (wrong crop or resolution)
-    UnsupportedSymbolError
-        Computed side length *N* is even or outside the range 15 - 151.
+    :raises InvalidParameterError: The image file does not exist or cannot be read, or
+        estimated cell size is zero (image too small or blurred), or
+        sampling point falls outside the image (wrong crop or resolution).
+    :raises UnsupportedSymbolError: Computed side length *N* is even or outside the range 15 - 151.
     """
 
     def __init__(
@@ -56,21 +49,15 @@ class AztecMatrix:
     ) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
         """Detect all candidate Aztec codes in the image and return the crops.
 
-        Parameters
-        ----------
-        min_area_ratio : float, default 0.005
-            Minimum area of the detected region as a fraction of the image area.
+        :param min_area_ratio: Minimum area of the detected region as a fraction of the image area, defaults to 0.005
+        :type min_area_ratio: float
+        :param ar_tol: Allowed aspect ratio tolerance (width/height) for the detected region, defaults to 0.15
+        :type ar_tol: float
+        :param density_tol: Allowed density tolerance for the detected region (black/white ratio), defaults to 0.15
+        :type density_tol: float
 
-        ar_tol : float, default 0.15
-            Allowed aspect ratio tolerance (width/height) for the detected region.
-
-        density_tol : float, default 0.15
-            Allowed density tolerance for the detected region (black/white ratio).
-
-        Returns
-        -------
-        List[Tuple[crop_BGR, (x, y, w, h)]]
-            One entry per code candidate.
+        :return: One entry per code candidate.
+        :rtype: List[Tuple[crop_BGR, (x, y, w, h)]]
         """
 
         img = cv2.imread(self.image_path)
@@ -196,7 +183,7 @@ class AztecMatrix:
 
     @cached_property
     def matrix(self) -> np.ndarray:
-        """Return the first matrix detected in the image."""
+        """The binary module matrix (0 = white, 1 = black), shape (N, N). Lazy property."""
         if not self.matrices:
             raise InvalidParameterError("no Aztec matrix detected in the image")
         return self.matrices[0]

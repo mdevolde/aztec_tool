@@ -1,3 +1,5 @@
+"""Aztec Code orientation manager to align the symbol."""
+
 from __future__ import annotations
 
 from functools import cached_property
@@ -14,36 +16,25 @@ class OrientationManager:
     """Rotate the module matrix until the four orientation markers are aligned.
 
     Aztec codes embed a distinctive 3 bits *orientation pattern* at each
-    corner of the bull’s-eye.  In the canonical (upright) position, those
+    corner of the bull's-eye. In the canonical (upright) position, those
     four mini-matrices must match the reference layout stored in
-    :pyattr:`_TARGET`::
+    :attr:`_TARGET`::
 
         TL         TR         BR         BL
         1 1        0 1          1        0
         1            1        0 0        0 0
 
-    A clockwise 90° rotation is performed until the patterns fit.  After
+    A clockwise 90° rotation is performed until the patterns fit. After
     four unsuccessful attempts the symbol is considered corrupt.
 
-    Parameters
-    ----------
-    matrix : numpy.ndarray
-        0/1 matrix of the Aztec symbol (must be square and of odd size).
-    bounds : tuple[int, int, int, int]
-        Bull’s-Tupleeye bounding box returned by :class:`BullseyeDetector` -
+    :param matrix: 0/1 matrix of the Aztec symbol (must be square and of odd size).
+    :type matrix: numpy.ndarray
+    :param bounds: Bull's-eye bounding box returned by :class:`~aztec_tool.detection.BullseyeDetector` -
         ``(top, left, bottom, right)``.
+    :type bounds: tuple[int, int, int, int]
 
-    Attributes
-    ----------
-    patterns : List[List[int]]
-        The four 3-bit orientation patterns read TL→TR→BR→BL (lazy).
-
-    Raises
-    ------
-    InvalidParameterError
-        *matrix* not square/odd, or *bounds* malformed/outside matrix.
-    OrientationError
-        Index error while reading patterns or alignment failed after
+    :raises InvalidParameterError: *matrix* not square/odd, or *bounds* malformed/outside matrix.
+    :raises OrientationError: Index error while reading patterns or alignment failed after
         four rotations.
     """
 
@@ -59,13 +50,12 @@ class OrientationManager:
 
     def _read_patterns(self) -> List[List[int]]:
         """Read the four orientation patterns from the matrix.
+
         Orientation patterns are 3x3 matrices located at the corners of
         the bull's-eye.
 
-        Returns
-        -------
-        List[List[int]]
-            The four orientation patterns read TL→TR→BR→BL.
+        :return: The four orientation patterns read TL→TR→BR→BL.
+        :rtype: List[List[int]]
         """
         tl_y, tl_x, br_y, br_x = self.bounds
         tr_y, tr_x, bl_y, bl_x = tl_y, br_x, br_y, tl_x
@@ -98,15 +88,14 @@ class OrientationManager:
 
     @cached_property
     def patterns(self) -> List[List[int]]:
+        """The four 3-bit orientation patterns read TL→TR→BR→BL (lazy)."""
         return self._read_patterns()
 
     def rotate_if_needed(self) -> np.ndarray:
         """Rotate *matrix* clockwise until orientation markers match.
 
-        Returns
-        -------
-        numpy.ndarray
-            The (possibly rotated) matrix now in canonical orientation.
+        :return: The (possibly rotated) matrix now in canonical orientation.
+        :rtype: numpy.ndarray
         """
         for _ in range(4):
             if self._need_rotation():

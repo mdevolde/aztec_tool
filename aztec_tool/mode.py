@@ -1,3 +1,5 @@
+"""Aztec Code mode message reader and Reed-Solomon corrector."""
+
 from __future__ import annotations
 
 from functools import cached_property
@@ -16,14 +18,19 @@ class ModeFields(TypedDict):
     """Type for mode message fields."""
 
     layers: int
+    """Number of data layers."""
+
     data_words: int
+    """Number of data code-words."""
+
     ecc_bits: List[int]
+    """List of ECC bits."""
 
 
 class ModeReader:
     """Read and (optionally) RS-correct the *mode message*.
 
-    The mode message surrounds the bull’s-eye and encodes:
+    The mode message surrounds the bull's-eye and encodes:
 
     * **layers** (number of data layers, 1-32)
     * **data_words** (number of code-words that carry data)
@@ -31,41 +38,27 @@ class ModeReader:
 
     It is 28 bits long for *compact* symbols and 40 bits for *full* symbols.
 
-    Parameters
-    ----------
-    matrix : numpy.ndarray
-        Square binary matrix (0/1) of the Aztec symbol.
-    bounds : Tuple[int, int, int, int]
-        Bull’s-eye bounds returned by :class:`BullseyeDetector`
+    :param matrix: Square binary matrix (0/1) of the Aztec symbol.
+    :type matrix: numpy.ndarray
+    :param bounds: Bull's-eye bounds returned by :class:`~aztec_tool.detection.BullseyeDetector`
         - format ``(top, left, bottom, right)``.
-    aztec_type : AztecType
-        ``COMPACT`` or ``FULL``.
-    auto_correct : Optional[bool], default ``True``
-        Apply Reed-Solomon correction to the mode message.
+    :type bounds: Tuple[int, int, int, int]
+    :param aztec_type: ``COMPACT`` or ``FULL``.
+    :type aztec_type: AztecType
+    :param auto_correct: Apply Reed-Solomon correction to the mode message, defaults to ``True``
+    :type auto_correct: Optional[bool]
 
-    Attributes
-    ----------
-    mode_bitmap : numpy.ndarray
-        Raw 28/40-bit sequence (before ECC), order clockwise starting on top.
-    mode_corrected_bits : List[int]
-        Bit sequence after Reed-Solomon correction (lazy).
-    mode_fields : ModeFields
-        Parsed fields - keys ``layers``, ``data_words``, ``ecc_bits``.
+    :raises InvalidParameterError: *bounds* length ≠ 4, or matrix not square/odd dimensions.
+    :raises ModeFieldError: Index out of range while reading, wrong bit-length, layers out of range.
+    :raises ReedSolomonError: RS correction failed on the mode message.
 
-    Raises
-    ------
-    InvalidParameterError
-        *bounds* length ≠ 4, or matrix not square/odd dimensions.
-    ModeFieldError
-        Index out of range while reading, wrong bit-length, layers out of range.
-    ReedSolomonError
-        RS correction failed on the mode message.
+    **Example:**
 
-    Examples
-    --------
-    >>> mr = ModeReader(matrix, bounds, AztecType.FULL)
-    >>> mr.mode_fields
-    {'layers': 6, 'data_words': 125, 'ecc_bits': [...]}
+    .. code-block:: python
+
+        >>> mr = ModeReader(matrix, bounds, AztecType.FULL)
+        >>> mr.mode_fields
+        {'layers': 6, 'data_words': 125, 'ecc_bits': [...]}
     """
 
     def __init__(
@@ -93,12 +86,11 @@ class ModeReader:
 
     def _read_mode_bits(self) -> List[int]:
         """Read the mode message bits in clockwise order.
+
         The order is: top row, right column, bottom row, left column.
 
-        Returns
-        -------
-        List[int]
-            The mode message bits in clockwise order.
+        :return: The mode message bits in clockwise order.
+        :rtype: List[int]
         """
         bits = []
         try:
@@ -159,6 +151,7 @@ class ModeReader:
 
     @cached_property
     def mode_bitmap(self) -> np.ndarray:
+        """Raw 28/40-bit sequence (before ECC), order clockwise starting on top."""
         return self._read_mode_bits()
 
     def _correct(self) -> List[int]:
@@ -186,24 +179,27 @@ class ModeReader:
 
     @cached_property
     def mode_corrected_bits(self) -> List[int]:
+        """Bit sequence after Reed-Solomon correction (lazy)."""
         return self._correct()
 
     def _extract_fields(self) -> ModeFields:
         """Extract the mode message fields (layers, data words, ecc bits).
+
         For compact:
+
         - layers: 2 bits (max 4 layers)
         - data words: 6 bits (max 64 data words)
         - ecc bits: 20 bits
+
         For full:
+
         - layers: 5 bits (max 32 layers)
         - data words: 11 bits (max 2048 data words)
         - ecc bits: 24 bits
 
-        Returns
-        -------
-        ModeFields
-            Dictionary with keys ``layers``, ``data_words``, and ``ecc_bits``.
+        :return: Dictionary with keys ``layers``, ``data_words``, and ``ecc_bits``.
             The values are the corresponding integers or lists of bits.
+        :rtype: ModeFields
         """
         bits = self.mode_corrected_bits if self.auto_correct else self.mode_bitmap
         if self.aztec_type == AztecType.COMPACT:
@@ -229,4 +225,5 @@ class ModeReader:
 
     @cached_property
     def mode_fields(self) -> ModeFields:
+        """Parsed fields - keys ``layers``, ``data_words``, ``ecc_bits``."""
         return self._extract_fields()

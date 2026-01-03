@@ -28,7 +28,7 @@ pip install -e .[dev]
 When pushing commits, please use the project naming conventions, which are available in [this guide](https://www.conventionalcommits.org/en/v1.0.0/).
 If you haven't respected these conventions, do a rebase before making the pull request.
 
-The documentation style used in the project is **NumPy**. Please, if you add or modify documentation, use this style. If you need more information or examples, look in the code, or in [this guide](https://numpydoc.readthedocs.io/en/latest/format.html).
+The documentation style used in the project is **reStructuredText**. Please, if you add or modify documentation, use this style. If you need more information or examples, look in the code, in [this guide](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html), or in [this PEP](https://peps.python.org/pep-0287/).
 
 Before creating your pull request, when you have made all your commits, you need to run this:
 ```shell

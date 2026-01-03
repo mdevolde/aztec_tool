@@ -1,3 +1,5 @@
+"""Aztec Code code-word reader with Reed-Solomon error correction and high-level decoding."""
+
 from __future__ import annotations
 
 from functools import cached_property
@@ -23,42 +25,23 @@ __all__ = ["CodewordReader"]
 class CodewordReader:
     """Read the data spiral, apply Reed-Solomon correction and decode code-words.
 
-    Parameters
-    ----------
-    matrix : numpy.ndarray
-        Square binary matrix (0/1) representing the Aztec symbol.
-    layers : int
-        Number of data layers (excluding the bull's-eye).
-    data_words : int
-        Expected count of data code-words (script does *not* include ECC words).
-    aztec_type : AztecType
-        ``AztecType.COMPACT`` or ``AztecType.FULL`` according to the spec.
-    auto_correct : Optional[bool], default ``True``
-        If *True*, a Reed-Solomon pass is executed before high-level decoding.
+    :param matrix: Square binary matrix (0/1) representing the Aztec symbol.
+    :type matrix: numpy.ndarray
+    :param layers: Number of data layers (excluding the bull's-eye).
+    :type layers: int
+    :param data_words: Expected count of data code-words (script does *not* include ECC words).
+    :type data_words: int
+    :param aztec_type: ``AztecType.COMPACT`` or ``AztecType.FULL`` according to the spec.
+    :type aztec_type: AztecType
+    :param auto_correct: If *True*, a Reed-Solomon pass is executed before high-level decoding, defaults to ``True``
+    :type auto_correct: Optional[bool]
 
-    Attributes
-    ----------
-    bitmap : numpy.ndarray
-        Raw bit-stream extracted from the symbol (before ECC correction).
-    corrected_bits : List[int]
-        Bit-stream after Reed-Solomon decoding and bit-stuff removal.
-    decoded_string : str
-        Final user message built with the Aztec shift/latch tables.
-
-    Raises
-    ------
-    InvalidParameterError
-        One of the constructor arguments is incoherent (e.g. *layers* < 1).
-    BitReadError
-        Data spiral extraction failed (index out of matrix or empty result).
-    ReedSolomonError
-        The Reed-Solomon decoder could not correct the symbol.
-    BitStuffingError
-        Stuffed/padding bits do not follow the spec rules.
-    SymbolDecodeError
-        An index maps to no entry in the current character table.
-    StreamTerminationError
-        Premature end of bit-stream (e.g. incomplete Byte-shift segment).
+    :raises InvalidParameterError: One of the constructor arguments is incoherent (e.g. *layers* < 1).
+    :raises BitReadError: Data spiral extraction failed (index out of matrix or empty result).
+    :raises ReedSolomonError: The Reed-Solomon decoder could not correct the symbol.
+    :raises BitStuffingError: Stuffed/padding bits do not follow the spec rules.
+    :raises SymbolDecodeError: An index maps to no entry in the current character table.
+    :raises StreamTerminationError: Premature end of bit-stream (e.g. incomplete Byte-shift segment).
     """
 
     PRIM_POLY = {
@@ -67,6 +50,7 @@ class CodewordReader:
         10: 0x409,  # x^10 + x^3 + 1
         12: 0x1069,  # x^12 + x^6 + x^5 + x^3 + 1
     }
+    """Primitive polynomials for Galois Field generation, keyed by code-word size."""
 
     def __init__(
         self,
@@ -93,21 +77,18 @@ class CodewordReader:
 
     def _is_reference(self, r: int, c: int) -> bool:
         """Check if the given coordinates are part of the reference grid.
+
         A coordinate is part of the reference grid if it is a multiple of 16
         from the center of the matrix. The center is defined as the middle of the
         matrix (i.e. the middle row and column).
 
-        Parameters
-        ----------
-        r : int
-            Row index of the coordinate.
-        c : int
-            Column index of the coordinate.
+        :param r: Row index of the coordinate.
+        :type r: int
+        :param c: Column index of the coordinate.
+        :type c: int
 
-        Returns
-        -------
-        bool
-            True if the coordinate is part of the reference grid, False otherwise.
+        :return: True if the coordinate is part of the reference grid, False otherwise.
+        :rtype: bool
         """
         centre = self.matrix.shape[0] // 2
         return bool((r - centre) % 16 == 0 or (c - centre) % 16 == 0)
@@ -221,6 +202,7 @@ class CodewordReader:
 
     @cached_property
     def bitmap(self) -> np.ndarray:
+        """Raw bit-stream extracted from the symbol (before ECC correction)."""
         return self._read_bits()
 
     def _correct(self) -> List[int]:
@@ -275,6 +257,7 @@ class CodewordReader:
 
     @cached_property
     def corrected_bits(self) -> List[int]:
+        """Bit-stream after Reed-Solomon decoding and bit-stuff removal."""
         return self._correct()
 
     @classmethod
@@ -289,24 +272,21 @@ class CodewordReader:
         self, bits: List[int], cw_size: int, data_words: int
     ) -> List[int]:
         """Remove the stuffing bits from the bit-stream.
+
         A stuffed bit is a bit that is added to the bit-stream when there are cw_size-1
         consecutive bits of the same value. The stuffed bit is the opposite of the last bit.
         We need to remove the stuffed bits from the bit-stream before decoding it.
         Remove also the padding bits at the beginning of the stream.
 
-        Parameters
-        ----------
-        bits : List[int]
-            The bit-stream to clean.
-        cw_size : int
-            The size of the code-words (6, 8, 10 or 12).
-        data_words : int
-            The number of data code-words in the symbol.
+        :param bits: The bit-stream to clean.
+        :type bits: List[int]
+        :param cw_size: The size of the code-words (6, 8, 10 or 12).
+        :type cw_size: int
+        :param data_words: The number of data code-words in the symbol.
+        :type data_words: int
 
-        Returns
-        -------
-        List[int]
-            The cleaned bit-stream without the stuffed bits and the padding bits.
+        :return: The cleaned bit-stream without the stuffed bits and the padding bits.
+        :rtype: List[int]
         """
         cleaned = []
         i = 0
@@ -443,4 +423,5 @@ class CodewordReader:
 
     @cached_property
     def decoded_string(self) -> str:
+        """Final user message built with the Aztec shift/latch tables."""
         return self._decode()

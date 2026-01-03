@@ -31,6 +31,6 @@ html_static_path = ["_static"]
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
-    "private-members": True,
+    "private-members": False,
     "show-inheritance": True,
 }

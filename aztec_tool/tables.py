@@ -1,3 +1,5 @@
+"""Aztec Code character table manager."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,10 +16,19 @@ class AztecTableEntry:
     """Single row of the 5 Aztec character tables (index 0-31)."""
 
     upper: str
+    """Character in UPPER table."""
+
     lower: str
+    """Character in LOWER table."""
+
     mixed: str
+    """Character in MIXED table."""
+
     punct: str
+    """Character in PUNCT table."""
+
     digit: Optional[str] = None
+    """Character in DIGIT table (None if undefined because digits stop at index 15)."""
 
 
 class TableManager:
@@ -27,23 +38,25 @@ class TableManager:
     Each 5-bit value (0-31) maps to a *character* that depends on the
     currently active table (digit are 4-bit value).
 
-    The mapping is stored in :pyattr:`mapping`.  Two convenience class
+    The mapping is stored in :attr:`mapping`. Two convenience class
     methods are provided:
 
     * :py:meth:`get_char` - return the character for *(index, table)* or
-      raise :class:`SymbolDecodeError`.
+      raise :class:`~.exceptions.SymbolDecodeError`.
     * :py:meth:`letter_to_mode` - convert the first letter of a *shift/latch
       token* (``'U'``, ``'L'``, …) into the corresponding
-      :class:`AztecTableType`.
+      :class:`~.enums.AztecTableType`.
 
-    The class never needs instantiation, all helpers are `@classmethod`s.
+    The class never needs instantiation, all helpers are ``@classmethod`` s.
 
-    Examples
-    --------
-    >>> TableManager.get_char(2, AztecTableType.UPPER)
-    'A'
-    >>> TableManager.letter_to_mode('m')
-    <AztecTableType.MIXED: 2>
+    **Example:**
+
+    .. code-block:: python
+
+        >>> TableManager.get_char(2, AztecTableType.UPPER)
+        'A'
+        >>> TableManager.letter_to_mode('m')
+        <AztecTableType.MIXED: 2>
     """
 
     LETTER2MODE = {
@@ -53,6 +66,7 @@ class TableManager:
         "P": AztecTableType.PUNCT,
         "D": AztecTableType.DIGIT,
     }
+    """Mapping from latch letter to table type."""
 
     mapping: Dict[int, AztecTableEntry] = {
         0: AztecTableEntry("P/S", "P/S", "P/S", "FLG(n)", "P/S"),
@@ -88,15 +102,21 @@ class TableManager:
         30: AztecTableEntry("D/L", "D/L", "P/L", "}"),
         31: AztecTableEntry("B/S", "B/S", "B/S", "U/L"),
     }
+    """The character mapping for all five tables (index 0-31)."""
 
     @classmethod
     def get_char(cls, index: int, mode: AztecTableType) -> str:
         """Return the character for *index* in the selected *mode* table.
 
-        Raises
-        ------
-        SymbolDecodeError
-            *index* outside 0-31 or undefined in the chosen table.
+        :param index: The symbol index (0-31).
+        :type index: int
+        :param mode: The active table mode.
+        :type mode: AztecTableType
+
+        :return: The character corresponding to the index in the selected mode.
+        :rtype: str
+
+        :raises SymbolDecodeError: *index* outside 0-31 or undefined in the chosen table.
         """
         try:
             entry = cls.mapping[index]
@@ -111,10 +131,13 @@ class TableManager:
     def letter_to_mode(cls, char: str) -> AztecTableType:
         """Convert a latch/shift letter (``'U'``, ``'L'``, *etc.*) to the enum.
 
-        Raises
-        ------
-        InvalidParameterError
-            The string is empty or the first letter is not U/L/M/P/D.
+        :param char: The latch/shift letter.
+        :type char: str
+
+        :return: The corresponding table type.
+        :rtype: AztecTableType
+
+        :raises InvalidParameterError: The string is empty or the first letter is not U/L/M/P/D.
         """
         if not char:
             raise InvalidParameterError("empty latch letter")

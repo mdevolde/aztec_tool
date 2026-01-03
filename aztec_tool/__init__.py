@@ -1,3 +1,5 @@
+"""A fast, pure-Python Aztec Code reader with auto-orientation and Reed-Solomon correction."""
+
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError
@@ -64,39 +66,35 @@ def decode(
     """Decode an Aztec Code image in **one line**.
 
     This convenience wrapper instantiates :class:`~aztec_tool.decoder.AztecDecoder`
-    and returns its :pyattr:`~aztec_tool.decoder.AztecDecoder.message`
-    property.  All keyword arguments are forwarded unchanged.
+    and returns its :attr:`~aztec_tool.decoder.AztecDecoder.message`
+    property. All keyword arguments are forwarded unchanged.
 
-    Parameters
-    ----------
-    image_path : Union[str, pathlib.Path]
-        Path to the cropped image containing the Aztec symbol.
-    auto_orient : Optional[bool], default ``True``
-        Auto-rotate the matrix to the canonical orientation.
-    auto_correct : Optional[bool], default ``True``
-        Apply Reed-Solomon correction on the *data* code-words.
-    mode_auto_correct : Optional[bool], default ``True``
-        Apply Reed-Solomon correction on the *mode* message.
-    **kwargs
-        Reserved for future options, currently ignored.
+    :param image_path: Path to the cropped image containing the Aztec symbol.
+    :type image_path: Union[str, pathlib.Path]
+    :param auto_orient: Auto-rotate the matrix to the canonical orientation, defaults to ``True``
+    :type auto_orient: Optional[bool]
+    :param auto_correct: Apply Reed-Solomon correction on the *data* code-words, defaults to ``True``
+    :type auto_correct: Optional[bool]
+    :param mode_auto_correct: Apply Reed-Solomon correction on the *mode* message, defaults to ``True``
+    :type mode_auto_correct: Optional[bool]
+    :param kwargs: Reserved for future options, currently ignored.
+    :type kwargs: Any
 
-    Returns
-    -------
-    str
-        The decoded user message.
+    :return: The decoded user message.
+    :rtype: str
 
-    Raises
-    ------
-    InvalidParameterError
-        The image path is invalid or the file cannot be opened.
-    BullseyeDetectionError, OrientationError, ReedSolomonError, …
-        Any exception propagated by the underlying decoder phases.
+    :raises InvalidParameterError: The image path is invalid or the file cannot be opened.
+    :raises BullseyeDetectionError: Error during bullseye detection.
+    :raises OrientationError: Error during orientation detection.
+    :raises ReedSolomonError: Error during Reed-Solomon correction.
 
-    Examples
-    --------
-    >>> from aztec_tool import decode
-    >>> decode("ticket.png")
-    'EVENT: Concert\\nROW 12 SEAT 34'
+    **Example:**
+
+    .. code-block:: python
+
+        >>> from aztec_tool import decode
+        >>> decode("ticket.png")
+        'EVENT: Concert\\\\nROW 12 SEAT 34'
     """
     return AztecDecoder(
         image_path,

@@ -1,3 +1,5 @@
+"""aztec-tool command line interface."""
+
 import argparse
 import sys
 from pathlib import Path

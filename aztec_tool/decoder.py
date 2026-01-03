@@ -1,3 +1,5 @@
+"""Aztec Code high-level decoder interfaces."""
+
 from __future__ import annotations
 
 from functools import cached_property
@@ -18,65 +20,46 @@ __all__ = ["AztecDecoder", "MultiAztecDecoder"]
 
 
 class AztecDecoder:
-    """High-level façade that decodes an Aztec symbol from an image in **one line**.
+    """High-level interface that decodes an Aztec symbol from an image in **one line**.
 
-        This class orchestrates all lower-level components:
-        :class:`AztecMatrix`, :class:`BullseyeDetector`,
-        :class:`OrientationManager`, :class:`ModeReader` and
-        :class:`CodewordReader`.
+    This class orchestrates all lower-level components:
+    :class:`~aztec_tool.matrix.AztecMatrix`, :class:`~aztec_tool.detection.BullseyeDetector`,
+    :class:`~aztec_tool.orientation.OrientationManager`, :class:`~aztec_tool.mode.ModeReader` and
+    :class:`~aztec_tool.codewords.CodewordReader`.
 
-        Parameters
-        ----------
-        image_path : Optional[Union[str, Path]]
-            Path to the image file **already cropped** to the Aztec symbol.
-            If not provided, the *matrix* parameter must be used instead.
-        matrix : Optional[np.ndarray]
-            Binary matrix (0/1) of the Aztec symbol.  If not provided, the
-            *image_path* parameter must be used instead.
-        auto_orient : Optional[bool], default ``True``
-            If *True*, the matrix is rotated automatically so that orientation
-            patterns match the canonical position (black-white corner pattern).
-        auto_correct :  Optional[bool], default ``True``
-            Apply Reed-Solomon correction on the *data* code-words before
-            high-level decoding.  Disable it for debugging corrupted symbols.
-        mode_auto_correct :  Optional[bool], default ``True``
-            Apply Reed-Solomon correction on the *mode message* (layers, data
-            words, ecc bits).
+    :param image_path: Path to the image file **already cropped** to the Aztec symbol.
+        If not provided, the *matrix* parameter must be used instead.
+    :type image_path: Optional[Union[str, Path]]
+    :param matrix: Binary matrix (0/1) of the Aztec symbol. If not provided, the
+        *image_path* parameter must be used instead.
+    :type matrix: Optional[np.ndarray]
+    :param auto_orient: If *True*, the matrix is rotated automatically so that orientation
+        patterns match the canonical position (black-white corner pattern), defaults to ``True``
+    :type auto_orient: Optional[bool]
+    :param auto_correct: Apply Reed-Solomon correction on the *data* code-words before
+        high-level decoding. Disable it for debugging corrupted symbols, defaults to ``True``
+    :type auto_correct: Optional[bool]
+    :param mode_auto_correct: Apply Reed-Solomon correction on the *mode message* (layers, data
+        words, ecc bits), defaults to ``True``
+    :type mode_auto_correct: Optional[bool]
 
-        Attributes
-        ----------
-        matrix : numpy.ndarray
-            Final, possibly rotated, binary matrix (0/1) of the symbol.
-        aztec_type : AztecType
-            ``COMPACT`` or ``FULL`` deduced from the bull's-eye.
-        bullseye_bounds : Tuple[int, int, int, int]
-            Coordinates of the bull's-eye corners.
-        mode_info : Dict[str, Union[int, List[int]]]
-            Parsed mode fields - keys ``layers``, ``data_words``, ``ecc_bits``.
-        bitmap : numpy.ndarray
-            Raw bit-stream extracted from the data spiral (before ECC).
-        corrected_bits : List[int]
-            Bit-stream after Reed-Solomon correction and bit-stuff removal.
-        message : str
-            Decoded user message (lazy property, evaluated once).
+    :raises InvalidParameterError: *image_path* does not point to an existing file.
+    :raises BullseyeDetectionError: Error during bullseye detection.
+    :raises OrientationError: Error during orientation.
+    :raises BitReadError: Error reading bits.
 
-        Raises
-        ------
-        InvalidParameterError
-            *image_path* does not point to an existing file.
-        BullseyeDetectionError, OrientationError, BitReadError, etc.
-            Any lower-level exception is propagated so the caller can catch
-            precisely the failing phase.
+    **Example:**
 
-        Examples
-        --------
+    .. code-block:: python
+
         >>> from aztec_tool import AztecDecoder
         >>> dec = AztecDecoder("ticket.png")
         >>> dec.message  # same as dec.decode()
-        'EVENT: Concert
-    ROW 12 SEAT 34'
+        'EVENT: Concert\\nROW 12 SEAT 34'
 
-        A one-liner helper is also available:
+    A one-liner helper is also available:
+
+    .. code-block:: python
 
         >>> from aztec_tool import decode
         >>> decode("hello.png")
@@ -128,14 +111,17 @@ class AztecDecoder:
 
     @cached_property
     def bullseye_bounds(self) -> Tuple[int, int, int, int]:
+        """Coordinates of the bull's-eye corners."""
         return self._bullseye.bounds
 
     @cached_property
     def aztec_type(self) -> AztecType:
+        """``AztecType.COMPACT`` or ``AztecType.FULL`` deduced from the bull's-eye."""
         return self._bullseye.aztec_type
 
     @cached_property
     def matrix(self) -> np.ndarray:
+        """Final, possibly rotated, binary matrix (0/1) of the symbol."""
         if not self._auto_orient:
             return self._raw_matrix
         return OrientationManager(
@@ -151,6 +137,7 @@ class AztecDecoder:
 
     @cached_property
     def mode_info(self) -> ModeFields:
+        """Parsed mode fields - keys ``layers``, ``data_words``, ``ecc_bits``."""
         return self._mode.mode_fields
 
     @cached_property
@@ -165,41 +152,37 @@ class AztecDecoder:
 
     @cached_property
     def bitmap(self) -> np.ndarray:
+        """Raw bit-stream extracted from the data spiral (before ECC)."""
         return self._codewords.bitmap
 
     @cached_property
     def corrected_bits(self) -> List[int]:
+        """Bit-stream after Reed-Solomon correction and bit-stuff removal."""
         return self._codewords.corrected_bits
 
     @cached_property
     def message(self) -> str:
+        """Decoded user message (lazy property, evaluated once)."""
         return self._codewords.decoded_string
 
     def decode(self) -> str:
-        """Return the decoded user message (alias of :pyattr:`message`)."""
+        """Return the decoded user message (alias of :attr:`message`)."""
         return self.message
 
 
 class MultiAztecDecoder:
-    """
-    MultiAztecDecoder is a utility class for decoding multiple Aztec codes from an image.
+    """Utility class for decoding multiple Aztec codes from an image.
 
-    Parameters
-    ----------
-        image_path (Union[str, Path]): The path to the image containing Aztec codes.
-        _auto_orient (bool): Whether to automatically orient the Aztec codes. Defaults to True.
-        _auto_correct (bool): Whether to apply error correction to the decoded data. Defaults to True.
-        _mode_auto_correct (bool): Whether to apply mode-specific error correction. Defaults to True.
+    :param image_path: The path to the image containing Aztec codes.
+    :type image_path: Union[str, Path]
+    :param auto_orient: Whether to automatically orient the Aztec codes, defaults to ``True``
+    :type auto_orient: bool
+    :param auto_correct: Whether to apply error correction to the decoded data, defaults to ``True``
+    :type auto_correct: bool
+    :param mode_auto_correct: Whether to apply mode-specific error correction, defaults to ``True``
+    :type mode_auto_correct: bool
 
-    Attributes
-    ----------
-        _matrices (List[np.ndarray]): A list of matrices representing the Aztec codes found in the image.
-        decoders (List[AztecDecoder]): A list of AztecDecoder instances for each detected Aztec code.
-        messages (List[str]): A list of successfully decoded messages from the Aztec codes.
-
-    Raises
-    ------
-        InvalidParameterError: If the provided image path does not exist or is not a file.
+    :raises InvalidParameterError: If the provided image path does not exist or is not a file.
     """
 
     def __init__(
@@ -225,6 +208,7 @@ class MultiAztecDecoder:
 
     @cached_property
     def decoders(self) -> List[AztecDecoder]:
+        """A list of AztecDecoder instances for each detected Aztec code."""
         subs: List[AztecDecoder] = []
         for mat in self._matrices:
             try:
@@ -241,9 +225,9 @@ class MultiAztecDecoder:
                 continue
         return subs
 
-    @property
+    @cached_property
     def messages(self) -> List[str]:
-        """Decoded messages (only successful ones)."""
+        """A list of successfully decoded messages from the Aztec codes."""
         messages = []
         for decoder in self.decoders:
             try:
@@ -253,5 +237,5 @@ class MultiAztecDecoder:
         return messages
 
     def decode_all(self) -> List[str]:
-        """Return the decoded user messages (alias of :pyattr:`messages`)."""
+        """Return the decoded user messages (alias of :attr:`messages`)."""
         return self.messages
