@@ -1,16 +1,18 @@
 from __future__ import annotations
+
 from functools import cached_property
 from pathlib import Path
-from typing import Union, Optional, Tuple, List, Dict
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
-from .matrix import AztecMatrix
-from .detection import BullseyeDetector
-from .orientation import OrientationManager
-from .mode import ModeReader
 from .codewords import CodewordReader
+from .detection import BullseyeDetector
 from .enums import AztecType
-from .exceptions import InvalidParameterError
+from .exceptions import AztecDecoderError, InvalidParameterError
+from .matrix import AztecMatrix
+from .mode import ModeReader
+from .orientation import OrientationManager
 
 __all__ = ["AztecDecoder", "MultiAztecDecoder"]
 
@@ -234,7 +236,7 @@ class MultiAztecDecoder:
                         mode_auto_correct=self._mode_auto_correct,
                     )
                 )
-            except Exception:
+            except AztecDecoderError:
                 # Ignore errors in the sub-decoders
                 continue
         return subs
@@ -246,7 +248,7 @@ class MultiAztecDecoder:
         for decoder in self.decoders:
             try:
                 messages.append(decoder.decode())
-            except Exception:
+            except AztecDecoderError:
                 self.decoders.remove(decoder)
         return messages
 

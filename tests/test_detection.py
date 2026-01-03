@@ -1,8 +1,9 @@
 import pytest
-from aztec_tool.matrix import AztecMatrix
-from aztec_tool.enums import AztecType
+
 from aztec_tool.detection import BullseyeDetector
+from aztec_tool.enums import AztecType
 from aztec_tool.exceptions import InvalidParameterError
+from aztec_tool.matrix import AztecMatrix
 
 
 def test_bullseye_detector(compact_img):

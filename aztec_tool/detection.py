@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from functools import cached_property
-import numpy as np
 from typing import Tuple, Union
+
+import numpy as np
 
 from .enums import AztecType
 from .exceptions import (

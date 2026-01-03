@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from .enums import AztecTableType
 from .exceptions import InvalidParameterError, SymbolDecodeError

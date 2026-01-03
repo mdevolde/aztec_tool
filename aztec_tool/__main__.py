@@ -1,6 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
+
 from . import __version__
 from .decoder import AztecDecoder, MultiAztecDecoder
 from .exceptions import AztecDecoderError

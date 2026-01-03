@@ -1,24 +1,25 @@
 from __future__ import annotations
-import toml
+
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
-from typing import Any, Union, Optional
+from typing import Any, Optional, Union
+
+import toml
 
 from .decoder import AztecDecoder, MultiAztecDecoder
 from .exceptions import (
     AztecDecoderError,
-    InvalidParameterError,
-    UnsupportedSymbolError,
-    BullseyeDetectionError,
-    OrientationError,
-    ModeFieldError,
     BitReadError,
     BitStuffingError,
+    BullseyeDetectionError,
+    InvalidParameterError,
+    ModeFieldError,
+    OrientationError,
     ReedSolomonError,
-    SymbolDecodeError,
     StreamTerminationError,
+    SymbolDecodeError,
+    UnsupportedSymbolError,
 )
-
 
 __all__: list[str] = [
     # version & helper

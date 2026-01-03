@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from functools import cached_property
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import reedsolo
-from typing import Optional, Tuple, List, Dict, Union
 
 from .detection import AztecType
 from .exceptions import InvalidParameterError, ModeFieldError, ReedSolomonError
@@ -152,10 +154,7 @@ class ModeReader:
         return self._read_mode_bits()
 
     def _correct(self) -> List[int]:
-        if self.aztec_type == AztecType.COMPACT:
-            nsym = 5
-        else:
-            nsym = 6
+        nsym = 5 if self.aztec_type == AztecType.COMPACT else 6
         rs = reedsolo.RSCodec(nsym=nsym, nsize=15, fcr=1, generator=2, c_exp=4)
         if len(self.mode_bitmap) % 4 != 0:
             raise ModeFieldError("mode bitmap length not multiple of 4")
@@ -198,10 +197,7 @@ class ModeReader:
             Dictionary with keys ``layers``, ``data_words``, and ``ecc_bits``.
             The values are the corresponding integers or lists of bits.
         """
-        if self.auto_correct:
-            bits = self.mode_corrected_bits
-        else:
-            bits = self.mode_bitmap
+        bits = self.mode_corrected_bits if self.auto_correct else self.mode_bitmap
         if self.aztec_type == AztecType.COMPACT:
             if len(bits) < 28:
                 raise ModeFieldError("compact mode message must be 28 bits")

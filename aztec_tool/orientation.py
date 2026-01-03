@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from functools import cached_property
+from typing import List, Tuple
+
 import numpy as np
-from typing import Tuple, List
 
 from .exceptions import InvalidParameterError, OrientationError
 

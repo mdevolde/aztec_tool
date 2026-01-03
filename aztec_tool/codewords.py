@@ -1,19 +1,21 @@
 from __future__ import annotations
+
 from functools import cached_property
-import numpy as np
-import reedsolo
 from typing import List, Optional
 
-from .tables import TableManager
-from .enums import ReadingDirection, AztecTableType, AztecType
+import numpy as np
+import reedsolo
+
+from .enums import AztecTableType, AztecType, ReadingDirection
 from .exceptions import (
     BitReadError,
     BitStuffingError,
     InvalidParameterError,
     ReedSolomonError,
-    SymbolDecodeError,
     StreamTerminationError,
+    SymbolDecodeError,
 )
+from .tables import TableManager
 
 __all__ = ["CodewordReader"]
 
@@ -395,14 +397,14 @@ class CodewordReader:
                 chars.append(self._bits_to_bytes(byte_bits).decode("latin-1"))
                 continue
 
-            elif char.endswith("/S"):
+            if char.endswith("/S"):
                 previous_mode = current_mode
                 current_mode = TableManager.letter_to_mode(char[0])
                 single_shift = True
                 single_consumed = 0
                 continue
 
-            elif char.endswith("/L"):
+            if char.endswith("/L"):
                 current_mode = TableManager.letter_to_mode(char[0])
                 previous_mode = current_mode
                 continue

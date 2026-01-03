@@ -1,9 +1,10 @@
 import pytest
+
 from aztec_tool.detection import BullseyeDetector
-from aztec_tool.mode import ModeReader
-from aztec_tool.matrix import AztecMatrix
 from aztec_tool.enums import AztecType
 from aztec_tool.exceptions import InvalidParameterError
+from aztec_tool.matrix import AztecMatrix
+from aztec_tool.mode import ModeReader
 
 
 def test_mode_fields(compact_img):

@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 from functools import cached_property
-import cv2
-from typing import List, Tuple, Optional
-import numpy as np
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Tuple, Union
+
+import cv2
+import numpy as np
 
 from .exceptions import InvalidParameterError, UnsupportedSymbolError
 
@@ -113,7 +114,7 @@ class AztecMatrix:
         print(len(rois))
         return rois
 
-    def _estimate_N(self, binary: np.ndarray) -> int:
+    def _estimate_n(self, binary: np.ndarray) -> int:
         h, w = binary.shape
         row = (binary[h // 2, :] < 128).astype(int)
 
@@ -134,27 +135,27 @@ class AztecMatrix:
             raise InvalidParameterError(
                 "estimated cell size is zero - image too small / blurred"
             )
-        N = int(round(w / cell_size))
-        if N % 2 == 0 or not (15 <= N <= 151):
-            raise UnsupportedSymbolError(f"unsupported Aztec side length: {N}")
-        return N
+        n = int(round(w / cell_size))
+        if n % 2 == 0 or not (15 <= n <= 151):
+            raise UnsupportedSymbolError(f"unsupported Aztec side length: {n}")
+        return n
 
     def _matrix_from_crop(self, crop: np.ndarray) -> np.ndarray:
         """Convert a *single* square crop to a binary module matrix."""
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-        N = self._estimate_N(binary)
+        n = self._estimate_n(binary)
         h = binary.shape[0]
-        cell_size = h // N
+        cell_size = h // n
         if cell_size == 0:
             raise InvalidParameterError(
                 "cell size computed as zero – check image resolution"
             )
 
-        matrix = np.zeros((N, N), dtype=int)
-        for y in range(N):
-            for x in range(N):
+        matrix = np.zeros((n, n), dtype=int)
+        for y in range(n):
+            for x in range(n):
                 cx = int((x + 0.5) * cell_size)
                 cy = int((y + 0.5) * cell_size)
                 if cy >= h or cx >= binary.shape[1]:

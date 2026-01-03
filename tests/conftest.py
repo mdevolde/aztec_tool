@@ -1,5 +1,7 @@
 import pathlib
+
 import pytest
+
 from aztec_tool import AztecDecoder
 
 HERE = pathlib.Path(__file__).parent
