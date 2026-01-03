@@ -110,7 +110,7 @@ class CodewordReader:
             True if the coordinate is part of the reference grid, False otherwise.
         """
         centre = self.matrix.shape[0] // 2
-        return (r - centre) % 16 == 0 or (c - centre) % 16 == 0
+        return bool((r - centre) % 16 == 0 or (c - centre) % 16 == 0)
 
     def _read_bits(self) -> np.ndarray:
         bitmap = []

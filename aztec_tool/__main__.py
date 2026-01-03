@@ -7,7 +7,7 @@ from .decoder import AztecDecoder, MultiAztecDecoder
 from .exceptions import AztecDecoderError
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="A fast, pure-Python Aztec Code reader with auto-orientation and Reed-Solomon correction.",
         prog="aztec-tool",
@@ -22,7 +22,6 @@ def main():
     group.add_argument(
         "--debug", action="store_true", help="Dump bitmap and corrected bits"
     )
-    parser.add_argument_group(group)
     parser.add_argument(
         "--no-auto-orient", action="store_false", help="Disable auto-orientation"
     )

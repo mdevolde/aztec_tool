@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from .detection import BullseyeDetector
 from .enums import AztecType
 from .exceptions import AztecDecoderError, InvalidParameterError
 from .matrix import AztecMatrix
-from .mode import ModeReader
+from .mode import ModeFields, ModeReader
 from .orientation import OrientationManager
 
 __all__ = ["AztecDecoder", "MultiAztecDecoder"]
@@ -150,7 +150,7 @@ class AztecDecoder:
         )
 
     @cached_property
-    def mode_info(self) -> Dict[str, Union[int, List[int]]]:
+    def mode_info(self) -> ModeFields:
         return self._mode.mode_fields
 
     @cached_property

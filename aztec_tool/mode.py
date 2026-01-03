@@ -1,15 +1,23 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, TypedDict
 
 import numpy as np
 import reedsolo
 
-from .detection import AztecType
+from .enums import AztecType
 from .exceptions import InvalidParameterError, ModeFieldError, ReedSolomonError
 
-__all__ = ["ModeReader"]
+__all__ = ["ModeReader", "ModeFields"]
+
+
+class ModeFields(TypedDict):
+    """Type for mode message fields."""
+
+    layers: int
+    data_words: int
+    ecc_bits: List[int]
 
 
 class ModeReader:
@@ -41,7 +49,7 @@ class ModeReader:
         Raw 28/40-bit sequence (before ECC), order clockwise starting on top.
     mode_corrected_bits : List[int]
         Bit sequence after Reed-Solomon correction (lazy).
-    mode_fields : Dict[str, Union[int, List[int]]]
+    mode_fields : ModeFields
         Parsed fields - keys ``layers``, ``data_words``, ``ecc_bits``.
 
     Raises
@@ -180,7 +188,7 @@ class ModeReader:
     def mode_corrected_bits(self) -> List[int]:
         return self._correct()
 
-    def _extract_fields(self) -> Dict[str, Union[int, List[int]]]:
+    def _extract_fields(self) -> ModeFields:
         """Extract the mode message fields (layers, data words, ecc bits).
         For compact:
         - layers: 2 bits (max 4 layers)
@@ -193,7 +201,7 @@ class ModeReader:
 
         Returns
         -------
-        Dict[str, Union[int, List[int]]]
+        ModeFields
             Dictionary with keys ``layers``, ``data_words``, and ``ecc_bits``.
             The values are the corresponding integers or lists of bits.
         """
@@ -220,5 +228,5 @@ class ModeReader:
         return {"layers": layers, "data_words": data_words, "ecc_bits": ecc_bits}
 
     @cached_property
-    def mode_fields(self) -> Dict[str, Union[int, List[int]]]:
+    def mode_fields(self) -> ModeFields:
         return self._extract_fields()

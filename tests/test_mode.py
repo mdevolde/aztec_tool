@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Any
+
 import pytest
 
 from aztec_tool.detection import BullseyeDetector
@@ -7,7 +10,7 @@ from aztec_tool.matrix import AztecMatrix
 from aztec_tool.mode import ModeReader
 
 
-def test_mode_fields(compact_img):
+def test_mode_fields(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
     dec = ModeReader(
@@ -23,7 +26,7 @@ def test_mode_fields(compact_img):
     )
 
 
-def test_mode_without_auto_correct(compact_img):
+def test_mode_without_auto_correct(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
     dec = ModeReader(
@@ -40,7 +43,7 @@ def test_mode_without_auto_correct(compact_img):
     )
 
 
-def test_exception_non_square_matrix(compact_img):
+def test_exception_non_square_matrix(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
 
@@ -55,7 +58,7 @@ def test_exception_non_square_matrix(compact_img):
         )
 
 
-def test_exception_non_odd_matrix(compact_img):
+def test_exception_non_odd_matrix(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
 
@@ -70,22 +73,22 @@ def test_exception_non_odd_matrix(compact_img):
         )
 
 
-def test_exception_non_complete_bounds(compact_img):
+def test_exception_non_complete_bounds(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
 
     # remove a row to make it non-square
-    bounds = bounds[:-1]
+    invalid_bounds: Any = bounds[:-1]
 
     with pytest.raises(InvalidParameterError):
         ModeReader(
             matrix=matrix,
-            bounds=bounds,
+            bounds=invalid_bounds,
             aztec_type=AztecType.COMPACT,
         )
 
 
-def test_exception_out_of_bounds(compact_img):
+def test_exception_out_of_bounds(compact_img: Path) -> None:
     matrix = AztecMatrix(str(compact_img)).matrix
     bounds = BullseyeDetector(matrix).bounds
 
