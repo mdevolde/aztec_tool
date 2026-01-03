@@ -16,7 +16,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Multimedia :: Graphics :: Capture :: Scanners",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -29,12 +28,16 @@ dependencies = [
     "toml"
 ]
 
-[project.optional-dependencies]
-dev = [
-  "black",
-  "pytest>=8.3",
-  "pytest-cov",
-  "ruff"
+[dependency-groups]
+tests = [
+    "pytest",
+    "pytest-cov",
+]
+
+docs = [
+  "furo",
+  "sphinx",
+  "sphinx-design",
 ]
 
 [project.urls]
