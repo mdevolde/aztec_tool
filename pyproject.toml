@@ -54,6 +54,9 @@ aztec-tool = "aztec_tool.__main__:main"
 [tool.setuptools]
 packages = ["aztec_tool"]
 
+[tool.setuptools.package-data]
+aztec_tool = ["py.typed"]
+
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
