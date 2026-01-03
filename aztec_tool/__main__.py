@@ -71,7 +71,7 @@ def main():
                 print(f"Layers:       {decoder.mode_info['layers']}")
                 print(f"Data words:   {decoder.mode_info['data_words']}")
                 print(
-                    f"ECC bits:     {"".join([str(bit) for bit in decoder.mode_info['ecc_bits']])}"
+                    f"ECC bits:     {''.join([str(bit) for bit in decoder.mode_info['ecc_bits']])}"
                 )
             elif args.debug:
                 print("Bitmap:")

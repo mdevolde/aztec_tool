@@ -45,10 +45,10 @@ try:
     from importlib.metadata import version as _pkg_version
 
     __version__: str = _pkg_version(__name__)
-except PackageNotFoundError:  # pragma: no cover
-    with open(
-        "pyproject.toml", "rb"
-    ) as f:  # If the package is not installed in the environment, read the version from pyproject.toml
+except PackageNotFoundError:  # If the package is not installed in the environment, read the version from pyproject.toml
+    project_root = Path(__file__).resolve().parent.parent
+    pyproject = project_root / "pyproject.toml"
+    with open(pyproject, "rb") as f:
         __version__ = toml.loads(f.read().decode("utf-8"))["project"]["version"]
 
 

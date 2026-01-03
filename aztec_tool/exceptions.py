@@ -16,6 +16,7 @@ Usage example
 ... except AztecDecoderError as err:
 ...     logger.error("Generic decode failure: %s", err)
 """
+
 from __future__ import annotations
 
 __all__ = [
