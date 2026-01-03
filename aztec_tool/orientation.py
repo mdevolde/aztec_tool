@@ -6,6 +6,7 @@ from functools import cached_property
 from typing import List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
 from .exceptions import InvalidParameterError, OrientationError
 
@@ -28,7 +29,7 @@ class OrientationManager:
     four unsuccessful attempts the symbol is considered corrupt.
 
     :param matrix: 0/1 matrix of the Aztec symbol (must be square and of odd size).
-    :type matrix: numpy.ndarray
+    :type matrix: npt.NDArray[np.int_]
     :param bounds: Bull's-eye bounding box returned by :class:`~aztec_tool.detection.BullseyeDetector` -
         ``(top, left, bottom, right)``.
     :type bounds: tuple[int, int, int, int]
@@ -38,7 +39,9 @@ class OrientationManager:
         four rotations.
     """
 
-    def __init__(self, matrix: np.ndarray, bounds: Tuple[int, int, int, int]) -> None:
+    def __init__(
+        self, matrix: npt.NDArray[np.int_], bounds: Tuple[int, int, int, int]
+    ) -> None:
         if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
             raise InvalidParameterError("matrix must be a square 2-D ndarray")
         if matrix.shape[0] % 2 == 0:
@@ -91,11 +94,12 @@ class OrientationManager:
         """The four 3-bit orientation patterns read TL→TR→BR→BL (lazy)."""
         return self._read_patterns()
 
-    def rotate_if_needed(self) -> np.ndarray:
+    def rotate_if_needed(self) -> npt.NDArray[np.int_]:
         """Rotate *matrix* clockwise until orientation markers match.
 
         :return: The (possibly rotated) matrix now in canonical orientation.
-        :rtype: numpy.ndarray
+        :rtype: npt.NDArray[np.int_]
+        :raises OrientationError: Unable to align orientation markers after 4 rotations.
         """
         for _ in range(4):
             if self._need_rotation():

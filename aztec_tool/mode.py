@@ -6,6 +6,7 @@ from functools import cached_property
 from typing import List, Optional, Tuple, TypedDict
 
 import numpy as np
+import numpy.typing as npt
 import reedsolo
 
 from .enums import AztecType
@@ -23,7 +24,7 @@ class ModeFields(TypedDict):
     data_words: int
     """Number of data code-words."""
 
-    ecc_bits: List[int]
+    ecc_bits: npt.NDArray[np.int_]
     """List of ECC bits."""
 
 
@@ -39,7 +40,7 @@ class ModeReader:
     It is 28 bits long for *compact* symbols and 40 bits for *full* symbols.
 
     :param matrix: Square binary matrix (0/1) of the Aztec symbol.
-    :type matrix: numpy.ndarray
+    :type matrix: npt.NDArray[np.int_]
     :param bounds: Bull's-eye bounds returned by :class:`~aztec_tool.detection.BullseyeDetector`
         - format ``(top, left, bottom, right)``.
     :type bounds: Tuple[int, int, int, int]
@@ -63,7 +64,7 @@ class ModeReader:
 
     def __init__(
         self,
-        matrix: np.ndarray,
+        matrix: npt.NDArray[np.int_],
         bounds: Tuple[int, int, int, int],
         aztec_type: AztecType,
         auto_correct: Optional[bool] = True,
@@ -84,15 +85,15 @@ class ModeReader:
         self.aztec_type = aztec_type
         self.auto_correct = auto_correct
 
-    def _read_mode_bits(self) -> List[int]:
+    def _read_mode_bits(self) -> npt.NDArray[np.int_]:
         """Read the mode message bits in clockwise order.
 
         The order is: top row, right column, bottom row, left column.
 
         :return: The mode message bits in clockwise order.
-        :rtype: List[int]
+        :rtype: npt.NDArray[np.int_]
         """
-        bits = []
+        bits: List[int] = []
         try:
             tl_y, tl_x, br_y, br_x = self.bounds
             tr_y, tr_x, bl_y, bl_x = tl_y, br_x, br_y, tl_x
@@ -147,14 +148,14 @@ class ModeReader:
                 "mode message indices out of range - check bounds"
             ) from exc
 
-        return [int(b) for b in bits]
+        return np.array([int(b) for b in bits], dtype=np.int_)
 
     @cached_property
-    def mode_bitmap(self) -> np.ndarray:
+    def mode_bitmap(self) -> npt.NDArray[np.int_]:
         """Raw 28/40-bit sequence (before ECC), order clockwise starting on top."""
         return self._read_mode_bits()
 
-    def _correct(self) -> List[int]:
+    def _correct(self) -> npt.NDArray[np.int_]:
         nsym = 5 if self.aztec_type == AztecType.COMPACT else 6
         rs = reedsolo.RSCodec(nsym=nsym, nsize=15, fcr=1, generator=2, c_exp=4)
         if len(self.mode_bitmap) % 4 != 0:
@@ -170,15 +171,15 @@ class ModeReader:
         except reedsolo.ReedSolomonError as exc:
             raise ReedSolomonError("RS decode failed for mode message") from exc
 
-        corrected_bits = []
+        corrected_bits: List[int] = []
         for sym in full_codeword:
             for shift in (3, 2, 1, 0):
                 corrected_bits.append((sym >> shift) & 1)
 
-        return corrected_bits
+        return np.array(corrected_bits, dtype=np.int_)
 
     @cached_property
-    def mode_corrected_bits(self) -> List[int]:
+    def mode_corrected_bits(self) -> npt.NDArray[np.int_]:
         """Bit sequence after Reed-Solomon correction (lazy)."""
         return self._correct()
 

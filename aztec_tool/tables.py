@@ -122,7 +122,7 @@ class TableManager:
             entry = cls.mapping[index]
         except KeyError as exc:
             raise SymbolDecodeError(f"symbol index {index} outside 0-31 range") from exc
-        char: str = getattr(entry, mode.name.lower())
+        char: Optional[str] = getattr(entry, mode.name.lower())
         if char is None:
             raise SymbolDecodeError(f"symbol {index} undefined in {mode.name} table")
         return char

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import reedsolo
 
 from .enums import AztecTableType, AztecType, ReadingDirection
@@ -26,7 +27,7 @@ class CodewordReader:
     """Read the data spiral, apply Reed-Solomon correction and decode code-words.
 
     :param matrix: Square binary matrix (0/1) representing the Aztec symbol.
-    :type matrix: numpy.ndarray
+    :type matrix: npt.NDArray[np.int_]
     :param layers: Number of data layers (excluding the bull's-eye).
     :type layers: int
     :param data_words: Expected count of data code-words (script does *not* include ECC words).
@@ -54,7 +55,7 @@ class CodewordReader:
 
     def __init__(
         self,
-        matrix: np.ndarray,
+        matrix: npt.NDArray[np.int_],
         layers: int,
         data_words: int,
         aztec_type: AztecType,
@@ -93,15 +94,15 @@ class CodewordReader:
         centre = self.matrix.shape[0] // 2
         return bool((r - centre) % 16 == 0 or (c - centre) % 16 == 0)
 
-    def _read_bits(self) -> np.ndarray:
-        bitmap = []
+    def _read_bits(self) -> npt.NDArray[np.int_]:
+        bitmap: List[int] = []
         square_size = self.matrix.shape[0]
         reading_direction = ReadingDirection.BOTTOM
-        start_point = (
+        start_point: Tuple[int, int] = (
             0,
             0,
         )  # We start reading from the top left corner to the bottom left corner
-        end_point = (
+        end_point: Tuple[int, int] = (
             square_size
             - 1
             - 2,  # - 2 because the two last lines are readed in a different direction
@@ -120,7 +121,7 @@ class CodewordReader:
                             not self._is_reference(i, start_point[1])
                             or self.aztec_type == AztecType.COMPACT
                         ):
-                            bitmap.append(
+                            bitmap.extend(
                                 self.matrix[i, start_point[1] : end_point[1] + 1]
                             )
                     elif reading_direction == ReadingDirection.RIGHT:
@@ -128,7 +129,7 @@ class CodewordReader:
                             not self._is_reference(start_point[0], i)
                             or self.aztec_type == AztecType.COMPACT
                         ):
-                            bitmap.append(
+                            bitmap.extend(
                                 self.matrix[start_point[0] : end_point[0] - 1 : -1, i]
                             )
                     elif reading_direction == ReadingDirection.TOP:
@@ -138,7 +139,7 @@ class CodewordReader:
                             )
                             or self.aztec_type == AztecType.COMPACT
                         ):
-                            bitmap.append(
+                            bitmap.extend(
                                 self.matrix[
                                     start_point[0] - i + apply_to_borns,
                                     start_point[1] : end_point[1] - 1 : -1,
@@ -151,7 +152,7 @@ class CodewordReader:
                             )
                             or self.aztec_type == AztecType.COMPACT
                         ):
-                            bitmap.append(
+                            bitmap.extend(
                                 self.matrix[
                                     start_point[0] : end_point[0] + 1,
                                     start_point[1] - i + apply_to_borns,
@@ -198,14 +199,14 @@ class CodewordReader:
                 "no data modules extracted - check bull's-eye/layer count"
             )
 
-        return np.concatenate(bitmap).astype(int)
+        return np.array(bitmap, dtype=int)
 
     @cached_property
-    def bitmap(self) -> np.ndarray:
+    def bitmap(self) -> npt.NDArray[np.int_]:
         """Raw bit-stream extracted from the symbol (before ECC correction)."""
         return self._read_bits()
 
-    def _correct(self) -> List[int]:
+    def _correct(self) -> npt.NDArray[np.int_]:
         if self.layers <= 2:
             cw_size = 6
         elif self.layers <= 8:
@@ -248,15 +249,15 @@ class CodewordReader:
         except reedsolo.ReedSolomonError as exc:
             raise ReedSolomonError(str(exc)) from exc
 
-        corrected_bits = []
+        corrected_bits: List[int] = []
         for sym in full_codeword:
             for shift in range(cw_size - 1, -1, -1):
                 corrected_bits.append((sym >> shift) & 1)
 
-        return corrected_bits
+        return np.array(corrected_bits, dtype=int)
 
     @cached_property
-    def corrected_bits(self) -> List[int]:
+    def corrected_bits(self) -> npt.NDArray[np.int_]:
         """Bit-stream after Reed-Solomon decoding and bit-stuff removal."""
         return self._correct()
 
@@ -269,7 +270,7 @@ class CodewordReader:
         return bytes(cls._bits_to_int(bits[i : i + 8]) for i in range(0, len(bits), 8))
 
     def _remove_stuff_bits(
-        self, bits: List[int], cw_size: int, data_words: int
+        self, bits: npt.NDArray[np.int_], cw_size: int, data_words: int
     ) -> List[int]:
         """Remove the stuffing bits from the bit-stream.
 
@@ -279,7 +280,7 @@ class CodewordReader:
         Remove also the padding bits at the beginning of the stream.
 
         :param bits: The bit-stream to clean.
-        :type bits: List[int]
+        :type bits: npt.NDArray[np.int_]
         :param cw_size: The size of the code-words (6, 8, 10 or 12).
         :type cw_size: int
         :param data_words: The number of data code-words in the symbol.
@@ -288,7 +289,7 @@ class CodewordReader:
         :return: The cleaned bit-stream without the stuffed bits and the padding bits.
         :rtype: List[int]
         """
-        cleaned = []
+        cleaned: List[int] = []
         i = 0
         words_seen = 0
         while words_seen < data_words and i < len(bits):
@@ -324,7 +325,7 @@ class CodewordReader:
             bits = self._remove_stuff_bits(self.bitmap, codeword_size, self.data_words)
 
         i = 0
-        chars = []
+        chars: List[str] = []
         current_mode = AztecTableType.UPPER  # Default mode is UPPER
         previous_mode = AztecTableType.UPPER
         single_shift = False

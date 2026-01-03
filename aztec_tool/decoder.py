@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 
 from .codewords import CodewordReader
 from .detection import BullseyeDetector
@@ -32,7 +33,7 @@ class AztecDecoder:
     :type image_path: Optional[Union[str, Path]]
     :param matrix: Binary matrix (0/1) of the Aztec symbol. If not provided, the
         *image_path* parameter must be used instead.
-    :type matrix: Optional[np.ndarray]
+    :type matrix: Optional[npt.NDArray[np.int_]]
     :param auto_orient: If *True*, the matrix is rotated automatically so that orientation
         patterns match the canonical position (black-white corner pattern), defaults to ``True``
     :type auto_orient: Optional[bool]
@@ -70,7 +71,7 @@ class AztecDecoder:
         self,
         image_path: Optional[Union[str, Path]] = None,
         *,
-        matrix: Optional[np.ndarray] = None,
+        matrix: Optional[npt.NDArray[np.int_]] = None,
         auto_orient: Optional[bool] = True,
         auto_correct: Optional[bool] = True,
         mode_auto_correct: Optional[bool] = True,
@@ -80,7 +81,7 @@ class AztecDecoder:
                 "either 'image_path' or 'matrix' must be provided"
             )
 
-        self._input_matrix: Optional[np.ndarray] = None
+        self._input_matrix: Optional[npt.NDArray[np.int_]] = None
         if matrix is not None:
             if not isinstance(matrix, np.ndarray) or matrix.ndim != 2:
                 raise InvalidParameterError(
@@ -100,7 +101,7 @@ class AztecDecoder:
         self._mode_auto_correct = mode_auto_correct
 
     @cached_property
-    def _raw_matrix(self) -> np.ndarray:
+    def _raw_matrix(self) -> npt.NDArray[np.int_]:
         if self._input_matrix is not None:
             return self._input_matrix
         return AztecMatrix(str(self.image_path)).matrix
@@ -120,7 +121,7 @@ class AztecDecoder:
         return self._bullseye.aztec_type
 
     @cached_property
-    def matrix(self) -> np.ndarray:
+    def matrix(self) -> npt.NDArray[np.int_]:
         """Final, possibly rotated, binary matrix (0/1) of the symbol."""
         if not self._auto_orient:
             return self._raw_matrix
@@ -151,12 +152,12 @@ class AztecDecoder:
         )
 
     @cached_property
-    def bitmap(self) -> np.ndarray:
+    def bitmap(self) -> npt.NDArray[np.int_]:
         """Raw bit-stream extracted from the data spiral (before ECC)."""
         return self._codewords.bitmap
 
     @cached_property
-    def corrected_bits(self) -> List[int]:
+    def corrected_bits(self) -> npt.NDArray[np.int_]:
         """Bit-stream after Reed-Solomon correction and bit-stuff removal."""
         return self._codewords.corrected_bits
 

@@ -8,6 +8,8 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
+from cv2.typing import MatLike
 
 from .exceptions import InvalidParameterError, UnsupportedSymbolError
 
@@ -46,7 +48,7 @@ class AztecMatrix:
         min_area_ratio: float = 0.005,
         ar_tol: float = 0.15,
         density_tol: float = 0.15,
-    ) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
+    ) -> List[Tuple[MatLike, Tuple[int, int, int, int]]]:
         """Detect all candidate Aztec codes in the image and return the crops.
 
         :param min_area_ratio: Minimum area of the detected region as a fraction of the image area, defaults to 0.005
@@ -60,7 +62,7 @@ class AztecMatrix:
         :rtype: List[Tuple[crop_BGR, (x, y, w, h)]]
         """
 
-        img = cv2.imread(self.image_path)
+        img = cv2.imread(str(self.image_path))
         h, w = img.shape[:2]
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -74,7 +76,7 @@ class AztecMatrix:
         n_labels, _, stats, _ = cv2.connectedComponentsWithStats(inv, connectivity=8)
 
         img_area = h * w
-        rois = []  # results
+        rois: List[Tuple[MatLike, Tuple[int, int, int, int]]] = []  # results
 
         for i in range(1, n_labels):  # 0 = background, we start from 1
             x, y, ww, hh, area = stats[i]
@@ -101,11 +103,11 @@ class AztecMatrix:
         print(len(rois))
         return rois
 
-    def _estimate_n(self, binary: np.ndarray) -> int:
+    def _estimate_n(self, binary: MatLike) -> int:
         h, w = binary.shape
         row = (binary[h // 2, :] < 128).astype(int)
 
-        runs = []
+        runs: List[int] = []
         current = row[0]
         length = 1
         for pix in row[1:]:
@@ -127,7 +129,7 @@ class AztecMatrix:
             raise UnsupportedSymbolError(f"unsupported Aztec side length: {n}")
         return n
 
-    def _matrix_from_crop(self, crop: np.ndarray) -> np.ndarray:
+    def _matrix_from_crop(self, crop: MatLike) -> npt.NDArray[np.int_]:
         """Convert a *single* square crop to a binary module matrix."""
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -152,18 +154,16 @@ class AztecMatrix:
                 matrix[y, x] = 1 if binary[cy, cx] < 128 else 0
         return matrix
 
-    def _extract_matrix(self) -> List[np.ndarray]:
+    def _extract_matrix(self) -> List[npt.NDArray[np.int_]]:
         rois = self._detect_rois() if self._multiple else []
         if not rois:  # No Aztec code croped, try to read the whole image
             img = cv2.imread(str(self.image_path))
-            if img is None:
-                raise InvalidParameterError(f"cannot read image: {self.image_path}")
             try:
                 return [self._matrix_from_crop(img)]
             except (InvalidParameterError, UnsupportedSymbolError):
                 return []  # no Aztec code found
 
-        matrices = []
+        matrices: List[npt.NDArray[np.int_]] = []
         for crop, _ in rois:
             try:
                 matrices.append(self._matrix_from_crop(crop))
@@ -174,7 +174,7 @@ class AztecMatrix:
         return matrices
 
     @cached_property
-    def matrices(self) -> List[np.ndarray]:
+    def matrices(self) -> List[npt.NDArray[np.int_]]:
         """List of module matrices detected in the image."""
         matrices = self._extract_matrix()
         if not matrices:
@@ -182,7 +182,7 @@ class AztecMatrix:
         return matrices
 
     @cached_property
-    def matrix(self) -> np.ndarray:
+    def matrix(self) -> npt.NDArray[np.int_]:
         """The binary module matrix (0 = white, 1 = black), shape (N, N). Lazy property."""
         if not self.matrices:
             raise InvalidParameterError("no Aztec matrix detected in the image")

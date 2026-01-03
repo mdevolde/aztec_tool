@@ -4,6 +4,7 @@ from functools import cached_property
 from typing import Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 
 from .enums import AztecType
 from .exceptions import (
@@ -22,7 +23,7 @@ class BullseyeDetector:
     the detector expands outward ring-by-ring until the pattern breaks.
 
     :param matrix: Square binary matrix (0/1) representing the entire Aztec symbol.
-    :type matrix: numpy.ndarray
+    :type matrix: npt.NDArray[np.int_]
 
     :raises InvalidParameterError: *matrix* is not a square 2-D array of **odd** side length.
     :raises BullseyeDetectionError: The alternating ring pattern cannot be found (symbol damaged or
@@ -41,7 +42,7 @@ class BullseyeDetector:
         <AztecType.FULL: 1>
     """
 
-    def __init__(self, matrix: np.ndarray) -> None:
+    def __init__(self, matrix: npt.NDArray[np.int_]) -> None:
         if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
             raise InvalidParameterError("matrix must be a square 2-D array")
         if matrix.shape[0] % 2 == 0:
