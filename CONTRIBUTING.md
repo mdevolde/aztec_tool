@@ -33,10 +33,13 @@ The documentation style used in the project is **NumPy**. Please, if you add or 
 Before creating your pull request, when you have made all your commits, you need to run this:
 ```shell
 # Run linters (maybe you will have to fix some issues)
-ruff check aztec_tool tests
+uvx ruff@0.14.10 check
 
-# Format code
-black aztec_tool tests
+# Run type checker (maybe you will have to fix some issues)
+uvx mypy@1.19.1
+
+# Format code (this will modify your files)
+uvx ruff@0.14.10 format
 
 # Tests
 pytest

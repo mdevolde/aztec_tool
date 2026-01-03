@@ -1,44 +1,49 @@
-# This workflow will install Python dependencies, run tests with some python versions.
-# More information: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
-name: Test with PyTest
+name: CI for aztec_tool
 
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
-  build:
-
-    runs-on: ubuntu-22.04
+  tests:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Clone repository
+      uses: actions/checkout@v6
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
 
-    - name: Create and activate virtualenv
+    - name: Install dependencies & build package
       run: |
-        python -m venv venv
-        source venv/bin/activate
-        python -m pip install --upgrade pip
+        uv pip install setuptools wheel build pytest pytest-cov --system
+        uv build
+        uv pip install dist/*.whl --system
+    
+    - name: Verify installed packages
+      run: |
+        uv pip list
 
-    - name: Install dependencies
+    - name: Import aztec_tool
       run: |
-        source venv/bin/activate
-        pip install -e .[dev]
+        printf "import aztec_tool\n" | python
 
     - name: Test with pytest
       run: |
-        source venv/bin/activate
         pytest
 
     - name: Upload coverage reports to Codecov
@@ -48,3 +53,44 @@ jobs:
         files: coverage.xml
         name: ${{ matrix.python-version }}-coverage
         flags: python-${{ matrix.python-version }}
+  
+  lint:
+    name: Lint with Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+        
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      # Keep in sync ruff version with .pre-commit-config.yaml
+      - name: Run Ruff Linter
+        run: |
+          uvx ruff@0.14.10 check .
+          uvx ruff@0.14.10 format --check .
+  
+  type_check:
+    name: Type Check with Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+        
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up venv
+        run: uv venv .venv
+
+      - name: Install dependencies & build package
+        run: |
+          . .venv/bin/activate
+          uv pip install setuptools wheel build mypy
+          uv build
+          uv pip install dist/*.whl
+
+      # Keep in sync mypy version with .pre-commit-config.yaml
+      - name: Run Mypy Type Checker
+        run: | 
+          uvx mypy@1.19.1
