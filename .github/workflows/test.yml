@@ -28,12 +28,10 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v7
 
-    - name: Install dependencies & build package
+    - name: Install dependencies
       run: |
-        uv pip install setuptools wheel build pytest pytest-cov --system
-        uv build
-        uv pip install dist/*.whl --system
-    
+        uv pip install pytest pytest-cov --system
+        uv pip install -e . --system
     - name: Verify installed packages
       run: |
         uv pip list
@@ -44,7 +42,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=aztec_tool --cov-report=xml
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
