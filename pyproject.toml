@@ -48,7 +48,7 @@ quality = [
 
 [project.urls]
 Homepage = "https://github.com/mdevolde/aztec_tool.git"
-Documentation = "https://github.com/mdevolde/aztec_tool/blob/master/README.md"
+Documentation = "https://aztec-tool.readthedocs.io/en/latest/"
 Repository = "https://github.com/mdevolde/aztec_tool.git"
 Issues = "https://github.com/mdevolde/aztec_tool/issues"
 Changelog = "https://github.com/mdevolde/aztec_tool/blob/master/CHANGELOG.md"
