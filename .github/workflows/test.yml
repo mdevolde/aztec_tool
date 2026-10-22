@@ -1,5 +1,8 @@
 name: CI for aztec_tool
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ master ]
@@ -7,88 +10,90 @@ on:
     branches: [ master ]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
+    timeout-minutes: 20
     name: Test on Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # Required for Codecov OIDC authentication
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: ubuntu-26.04
+            python-version: "3.11"
+          - os: ubuntu-26.04
+            python-version: "3.12"
+          - os: ubuntu-26.04
+            python-version: "3.13"
+          - os: ubuntu-26.04
+            python-version: "3.14"
+          - os: ubuntu-26.04
+            python-version: "3.15"
+          - os: macos-26
+            python-version: "3.15"
+          - os: windows-2025
+            python-version: "3.15"
 
     steps:
-    - name: Clone repository
-      uses: actions/checkout@v6
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # 10.1.0
 
-    - name: Install dependencies
-      run: |
-        uv pip install pytest pytest-cov --system
-        uv pip install -e . --system
-    - name: Verify installed packages
-      run: |
-        uv pip list
-
-    - name: Import aztec_tool
-      run: |
-        printf "import aztec_tool\n" | python
-
-    - name: Test with pytest
-      run: |
-        pytest --cov=aztec_tool --cov-report=xml
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
+    - name: Clone repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: coverage.xml
-        name: ${{ matrix.python-version }}-coverage
-        flags: python-${{ matrix.python-version }}
+        persist-credentials: false
+    
+    - name: Test with pytest
+      env:
+        PYTHON_VERSION: ${{ matrix.python-version }}
+      run: |
+        uv run --python "$PYTHON_VERSION" --group tests --locked pytest
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-26.04' && matrix.python-version == '3.14'
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+      with:
+        use_oidc: true
+        files: ./coverage.xml
+        fail_ci_if_error: false
   
   lint:
+    timeout-minutes: 10
     name: Lint with Ruff
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v6
-        
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # 10.1.0
 
-      # Keep in sync ruff version with .pre-commit-config.yaml
+      - name: Clone repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          persist-credentials: false
+
       - name: Run Ruff Linter
         run: |
-          uvx ruff@0.14.10 check .
-          uvx ruff@0.14.10 format --check .
+          make ruff-check
   
   type_check:
+    timeout-minutes: 10
     name: Type Check with Mypy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v6
-        
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # 10.1.0
 
-      - name: Set up venv
-        run: uv venv .venv
+      - name: Clone repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Install dependencies & build package
-        run: |
-          . .venv/bin/activate
-          uv pip install setuptools wheel build mypy
-          uv build
-          uv pip install dist/*.whl
-
-      # Keep in sync mypy version with .pre-commit-config.yaml
       - name: Run Mypy Type Checker
         run: | 
-          uvx mypy@1.19.1
+          make mypy-check

@@ -1,37 +1,74 @@
 @echo off
 
+where uv >nul 2>nul
+if errorlevel 1 (
+    echo uv not found. Install uv to use make.bat targets:
+    echo powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    exit /b 1
+)
+
+if "%1"=="install" goto install
+if "%1"=="format" goto format
+if "%1"=="fix" goto fix
+if "%1"=="ruff-check" goto ruff-check
+if "%1"=="mypy-check" goto mypy-check
+if "%1"=="zizmor-check" goto zizmor-check
 if "%1"=="check" goto check
 if "%1"=="test" goto test
 if "%1"=="doc" goto doc
 if "%1"=="publish" goto publish
+if "%1"=="clean" goto clean
 
-echo Usage: make.bat [check^|test^|doc^|publish]
+echo Usage: make.bat [install^|format^|fix^|ruff-check^|mypy-check^|zizmor-check^|check^|test^|doc^|publish^|clean]
 exit /b 1
 
+:install
+uv sync --all-groups --locked
+exit /b %errorlevel%
+
+:format
+uv run --group quality --locked ruff format
+exit /b %errorlevel%
+
+:fix
+uv run --group quality --locked ruff check --fix
+if errorlevel 1 exit /b %errorlevel%
+uv run --group quality --locked zizmor --collect=all --no-progress --fix --persona=auditor .
+exit /b %errorlevel%
+
+:ruff-check
+uv run --group quality --locked ruff check
+if errorlevel 1 exit /b %errorlevel%
+
+uv run --group quality --locked ruff format --check
+exit /b %errorlevel%
+
+:mypy-check
+uv run --group tests --group quality --locked mypy
+exit /b %errorlevel%
+
+:zizmor-check
+uv run --group quality --locked zizmor --collect=all --no-progress --persona=auditor .
+exit /b %errorlevel%
+
 :check
-uvx ruff@0.14.10 check .
+call :ruff-check
 if errorlevel 1 exit /b %errorlevel%
-
-uvx ruff@0.14.10 format --check .
+call :mypy-check
 if errorlevel 1 exit /b %errorlevel%
-
-uvx mypy@1.19.1
+call :zizmor-check
 exit /b %errorlevel%
 
 :test
-call .venv\Scripts\activate && pytest
+uv run --group tests --locked pytest
 exit /b %errorlevel%
 
 :doc
-call .venv\Scripts\activate && uv run sphinx-apidoc -o docs\source\references aztec_tool
-if errorlevel 1 exit /b %errorlevel%
-
-call .venv\Scripts\activate && call docs\make.bat html
+call uv run --group docs --locked sphinx-build -M html docs/source docs/build
 exit /b %errorlevel%
 
 :publish
-if exist dist\ rmdir /s /q dist\
-if exist aztec_tool.egg-info\ rmdir /s /q aztec_tool.egg-info\
+call .\make.bat clean
 
 uv build
 if errorlevel 1 exit /b %errorlevel%
@@ -40,4 +77,8 @@ uvx twine check .\dist\*
 if errorlevel 1 exit /b %errorlevel%
 
 uv publish
+exit /b %errorlevel%
+
+:clean
+git clean -xfd --exclude .venv
 exit /b %errorlevel%

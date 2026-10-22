@@ -42,7 +42,8 @@ docs = [
 
 quality = [
     "mypy==2.4.0",
-    "ruff==0.17.0"
+    "ruff==0.17.0",
+    "zizmor==1.31.0",
 ]
 
 [project.urls]
@@ -70,7 +71,7 @@ select = ["F", "W", "I", "B", "SIM", "RET", "Q", "N", "S", "BLE"]
 "tests/*.py" = ["S101"]
 
 [tool.mypy]
-files = ["aztec_tool", "tests"]
+files = ["src", "tests"]
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
