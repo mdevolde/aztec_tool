@@ -63,6 +63,8 @@ class AztecMatrix:
         """
 
         img = cv2.imread(str(self.image_path))
+        if img is None:
+            raise InvalidParameterError(f"cannot read image: {self.image_path}")
         h, w = img.shape[:2]
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -158,6 +160,8 @@ class AztecMatrix:
         rois = self._detect_rois() if self._multiple else []
         if not rois:  # No Aztec code croped, try to read the whole image
             img = cv2.imread(str(self.image_path))
+            if img is None:
+                raise InvalidParameterError(f"cannot read image: {self.image_path}")
             try:
                 return [self._matrix_from_crop(img)]
             except (InvalidParameterError, UnsupportedSymbolError):

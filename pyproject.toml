@@ -40,6 +40,11 @@ docs = [
   "sphinx-design",
 ]
 
+quality = [
+    "mypy==2.4.0",
+    "ruff==0.17.0"
+]
+
 [project.urls]
 Homepage = "https://github.com/mdevolde/aztec_tool.git"
 Documentation = "https://github.com/mdevolde/aztec_tool/blob/master/README.md"
