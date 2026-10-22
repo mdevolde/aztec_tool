@@ -57,7 +57,7 @@ jobs:
         uv run --python "$PYTHON_VERSION" --group tests --locked pytest
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-26.04' && matrix.python-version == '3.14'
+      if: matrix.os == 'ubuntu-26.04' && matrix.python-version == '3.15'
       uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         use_oidc: true

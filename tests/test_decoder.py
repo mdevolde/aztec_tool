@@ -1,18 +1,17 @@
 from pathlib import Path
 
 import aztec_tool as az
-from aztec_tool import AztecDecoder
 
 
 def test_decode_func(compact_img: Path) -> None:
     assert az.decode(compact_img) == "You are reading me for Testing !"
 
 
-def test_decode_message(decoder: AztecDecoder) -> None:
+def test_decode_message(decoder: az.AztecDecoder) -> None:
     assert decoder.decode() == "You are reading me for Testing !"
 
 
-def test_bitmap_size(decoder: AztecDecoder) -> None:
+def test_bitmap_size(decoder: az.AztecDecoder) -> None:
     assert decoder.bitmap.size == 408
 
 
@@ -35,7 +34,7 @@ def test_exception_non_file_path() -> None:
         az.AztecDecoder("tests").decode()
 
 
-def test_decode_message_full(full_decoder: AztecDecoder) -> None:
+def test_decode_message_full(full_decoder: az.AztecDecoder) -> None:
     assert (
         full_decoder.decode()
         == "Data Matrix is a high density 2 dimensional matrix style barcode symbology that can encode up to 3116 characters from the entire 256 byte ASCII character set"
