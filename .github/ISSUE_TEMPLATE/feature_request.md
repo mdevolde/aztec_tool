@@ -17,6 +17,7 @@ Describe the feature you'd like and how you'd expect it to work.
 ```python
 # If applicable, show what the API could look like
 from aztec_tool import decode
+
 decode("welcome_lib.jpg")
 # ...
 ```
