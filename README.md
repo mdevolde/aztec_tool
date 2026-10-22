@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/mdevolde/aztec_tool/pulls)
 
-*A fast, pure‑Python Aztec Code reader with auto‑orientation and Reed-Solomon correction.*
+*A fast, pure-Python Aztec Code reader with auto-orientation and Reed-Solomon correction.*
 
 -------------
 
